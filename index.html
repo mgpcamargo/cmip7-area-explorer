@@ -197,6 +197,12 @@
         <div style="margin-top:16px; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px;">
           <div class="btn-group">
             <button id="scan-esgf-btn" class="active" onclick="checkLiveEsgf()">Scan Live ESGF-NG Datasets</button>
+            <select id="select-page-size" onchange="onFilterChanged()" title="Results per page">
+              <option value="50" selected>50 per page</option>
+              <option value="100">100 per page</option>
+              <option value="200">200 per page</option>
+              <option value="all">Load all matches</option>
+            </select>
             <label class="small muted" style="display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
               <input id="auto-query-toggle" type="checkbox" checked />
               Auto-query on filter change
@@ -205,11 +211,21 @@
           <span id="live-esgf-status" class="muted small">Ready to query <span class="mono">discovery.east.esgf.io/search</span></span>
         </div>
 
-        <div id="live-datasets-wrap" class="table-wrap hidden">
+        <div id="live-filter-bar" class="filter-bar hidden">
+          <div id="model-filter-pills" class="btn-group"></div>
+          <div class="btn-group">
+            <select id="filter-live-freq" onchange="onLiveClientFilter()">
+              <option value="all">All freqs</option>
+            </select>
+            <input id="live-search-input" type="text" placeholder="Filter model, variant, grid..." oninput="onLiveClientFilter()" style="width:200px;" />
+          </div>
+        </div>
+
+        <div id="live-datasets-wrap" class="table-wrap table-scroll hidden">
           <table>
             <thead>
               <tr>
-                <th style="width:36px;">Cart</th>
+                <th style="width:36px;"><input id="select-all-visible" type="checkbox" title="Select/deselect all visible datasets for cart" onchange="toggleSelectAllVisible(this.checked)" /></th>
                 <th>Model (source_id)</th>
                 <th>Experiment / Variant</th>
                 <th>Branded Variable</th>
@@ -221,6 +237,14 @@
             </thead>
             <tbody id="live-datasets-tbody"></tbody>
           </table>
+        </div>
+
+        <div id="live-pagination-bar" class="pagination-bar hidden">
+          <span id="pagination-summary" class="muted small">Showing 0 of 0</span>
+          <div class="btn-group">
+            <button id="load-more-btn" class="sm" onclick="loadNextEsgfPage()">Load Next Page</button>
+            <button id="load-all-btn" class="sm active" onclick="loadAllEsgfPages()">Load All Remaining</button>
+          </div>
         </div>
 
         <div id="cart-bar" class="cart-bar hidden">

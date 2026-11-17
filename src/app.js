@@ -55,6 +55,13 @@
     dragStartPan: null,
     surface: { hasLand: true, hasOcean: true, hasPolar: false, label: "Mixed (Land + Ocean)", countries: [] },
     liveItems: [],
+    totalMatched: 0,
+    nextLink: null,
+    activeEndpoint: null,
+    loadingMore: false,
+    modelFilter: "all",
+    freqFilter: "all",
+    searchText: "",
     cart: {}, // id -> STAC feature
     expandedIds: {}, // id -> bool
     previewBbox: null // [lonMin, latMin, lonMax, latMax] of hovered STAC dataset
@@ -961,9 +968,97 @@ esgpull download
     return (s && e) ? `${s}–${e}` : "—";
   }
 
+  function getFilteredLiveEntries() {
+    const q = state.searchText.trim().toLowerCase();
+    return state.liveItems
+      .map((item, origIdx) => ({ item, origIdx }))
+      .filter(({ item }) => {
+        const p = item.properties || {};
+        if (state.modelFilter !== "all" && (p["cmip7:source_id"] || "") !== state.modelFilter) return false;
+        if (state.freqFilter !== "all" && (p["cmip7:frequency"] || "") !== state.freqFilter) return false;
+        if (q) {
+          const hay = [
+            p["cmip7:source_id"],
+            p["cmip7:institution_id"],
+            p["cmip7:variant_label"],
+            p["cmip7:frequency"],
+            p["cmip7:grid_label"],
+            p["cmip7:variable_branded_name"]
+          ].join(" ").toLowerCase();
+          if (!hay.includes(q)) return false;
+        }
+        return true;
+      });
+  }
+
+  function renderLiveFilterBar() {
+    const bar = document.getElementById("live-filter-bar");
+    const pillsEl = document.getElementById("model-filter-pills");
+    const freqEl = document.getElementById("filter-live-freq");
+
+    if (!state.liveItems.length) {
+      bar.classList.add("hidden");
+      pillsEl.innerHTML = "";
+      return;
+    }
+    bar.classList.remove("hidden");
+
+    const modelCounts = {};
+    const freqs = new Set();
+    for (const item of state.liveItems) {
+      const p = item.properties || {};
+      const m = p["cmip7:source_id"] || "Unknown";
+      modelCounts[m] = (modelCounts[m] || 0) + 1;
+      if (p["cmip7:frequency"]) freqs.add(p["cmip7:frequency"]);
+    }
+
+    const models = Object.entries(modelCounts).sort((a, b) => b[1] - a[1]);
+    const pills = [
+      `<button class="sm ${state.modelFilter === "all" ? "active" : ""}" onclick="setLiveModelFilter('all')">All loaded (${state.liveItems.length})</button>`,
+      ...models.map(([m, cnt]) =>
+        `<button class="sm ${state.modelFilter === m ? "active" : ""}" onclick="setLiveModelFilter('${m}')">${m} (${cnt})</button>`
+      )
+    ];
+    pillsEl.innerHTML = pills.join("");
+
+    const prevFreq = state.freqFilter;
+    freqEl.innerHTML = `<option value="all">All freqs</option>` +
+      Array.from(freqs).sort().map(f => `<option value="${f}">${f}</option>`).join("");
+    freqEl.value = freqs.has(prevFreq) ? prevFreq : "all";
+    state.freqFilter = freqEl.value;
+  }
+
+  function renderPaginationBar() {
+    const bar = document.getElementById("live-pagination-bar");
+    const summaryEl = document.getElementById("pagination-summary");
+    const moreBtn = document.getElementById("load-more-btn");
+    const allBtn = document.getElementById("load-all-btn");
+
+    if (!state.liveItems.length) {
+      bar.classList.add("hidden");
+      return;
+    }
+
+    const remaining = Math.max(0, state.totalMatched - state.liveItems.length);
+    const hasNext = !!state.nextLink && remaining > 0;
+    bar.classList.toggle("hidden", !hasNext);
+    if (!hasNext) return;
+
+    const nextSize = (state.nextLink.body && state.nextLink.body.limit) || 50;
+    summaryEl.textContent = `Loaded ${state.liveItems.length} of ${state.totalMatched} matched datasets`;
+    moreBtn.textContent = state.loadingMore ? "Loading..." : `Load Next ${Math.min(nextSize, remaining)}`;
+    allBtn.textContent = state.loadingMore ? "Loading..." : `Load All Remaining (${remaining})`;
+    moreBtn.disabled = state.loadingMore;
+    allBtn.disabled = state.loadingMore;
+  }
+
   function renderLiveDatasets() {
     const wrap = document.getElementById("live-datasets-wrap");
     const tbody = document.getElementById("live-datasets-tbody");
+    const selectAllEl = document.getElementById("select-all-visible");
+
+    renderLiveFilterBar();
+    renderPaginationBar();
 
     if (!state.liveItems.length) {
       wrap.classList.add("hidden");
@@ -972,16 +1067,26 @@ esgpull download
     }
 
     wrap.classList.remove("hidden");
-    tbody.innerHTML = state.liveItems.map((item, idx) => {
+    const entries = getFilteredLiveEntries();
+    if (selectAllEl) {
+      selectAllEl.checked = entries.length > 0 && entries.every(({ item }) => !!state.cart[item.id]);
+    }
+
+    if (!entries.length) {
+      tbody.innerHTML = `<tr><td colspan="8" class="muted">No loaded datasets match the current filter.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = entries.map(({ item, origIdx }) => {
       const p = item.properties || {};
       const id = item.id;
       const checked = !!state.cart[id];
       const expanded = !!state.expandedIds[id];
       const assets = Object.entries(item.assets || {});
       let html = `
-        <tr onmouseenter="previewItemFootprint(${idx})" onmouseleave="previewItemFootprint(-1)" onclick="toggleFilesRow(${idx})">
+        <tr onmouseenter="previewItemFootprint(${origIdx})" onmouseleave="previewItemFootprint(-1)" onclick="toggleFilesRow(${origIdx})">
           <td onclick="event.stopPropagation()">
-            <input type="checkbox" ${checked ? "checked" : ""} onchange="toggleDatasetCart(${idx}, this.checked)" />
+            <input type="checkbox" ${checked ? "checked" : ""} onchange="toggleDatasetCart(${origIdx}, this.checked)" />
           </td>
           <td><strong>${p["cmip7:source_id"] || "—"}</strong><div class="muted small">${p["cmip7:institution_id"] || ""}</div></td>
           <td class="mono">${p["cmip7:experiment_id"] || "—"}<div class="muted small">${p["cmip7:variant_label"] || ""}</div></td>
@@ -989,7 +1094,7 @@ esgpull download
           <td class="mono">${p["cmip7:frequency"] || "—"} · ${p["cmip7:grid_label"] || "—"}</td>
           <td class="mono">${formatYearRange(p)}</td>
           <td class="mono">${formatSize(p.size)}</td>
-          <td><button class="sm" onclick="event.stopPropagation(); toggleFilesRow(${idx})">${expanded ? "Hide" : "Files"} (${assets.length})</button></td>
+          <td><button class="sm" onclick="event.stopPropagation(); toggleFilesRow(${origIdx})">${expanded ? "Hide" : "Files"} (${assets.length})</button></td>
         </tr>
       `;
       if (expanded) {
@@ -1010,6 +1115,27 @@ esgpull download
       }
       return html;
     }).join("");
+  }
+
+  function setLiveModelFilter(model) {
+    state.modelFilter = model;
+    renderLiveDatasets();
+  }
+
+  function onLiveClientFilter() {
+    state.freqFilter = document.getElementById("filter-live-freq").value;
+    state.searchText = document.getElementById("live-search-input").value;
+    renderLiveDatasets();
+  }
+
+  function toggleSelectAllVisible(checked) {
+    for (const { item } of getFilteredLiveEntries()) {
+      if (checked) state.cart[item.id] = item;
+      else delete state.cart[item.id];
+    }
+    updateCartBar();
+    renderLiveDatasets();
+    updateGeneratedCode();
   }
 
   function updateCartBar() {
@@ -1053,6 +1179,7 @@ esgpull download
     if (checked) state.cart[item.id] = item;
     else delete state.cart[item.id];
     updateCartBar();
+    renderLiveDatasets();
     updateGeneratedCode();
   }
 
@@ -1101,11 +1228,98 @@ esgpull download
     triggerDownload("subset_cmip7.py", buildPythonCode(cartSources), "text/x-python");
   }
 
+  function appendStacFeatures(features) {
+    const seen = new Set(state.liveItems.map(it => it.id));
+    for (const f of features) {
+      if (!seen.has(f.id)) {
+        seen.add(f.id);
+        state.liveItems.push(f);
+      }
+    }
+  }
+
+  function updateEsgfStatusBanner() {
+    const statusEl = document.getElementById("live-esgf-status");
+    const v = state.selectedVar;
+    const exp = document.getElementById("select-experiment").value;
+    if (state.liveItems.length === 0) {
+      statusEl.innerHTML = `<span class="warn-text">0 live datasets found</span> for <span class="mono">${v.branded}</span> in <span class="mono">${exp}</span> (try <span class="mono">scen7-vl</span>, <span class="mono">scen7-h</span>, <span class="mono">historical</span>, or <span class="mono">esm-hist</span>).`;
+    } else {
+      const host = state.activeEndpoint ? new URL(state.activeEndpoint).host : "ESGF-NG";
+      statusEl.innerHTML = `<span class="ok-text">${state.totalMatched} datasets matched</span> via <span class="mono">${host}</span> (showing ${state.liveItems.length}).`;
+    }
+  }
+
+  async function fetchStacNextPage() {
+    if (!state.nextLink) return false;
+    const link = state.nextLink;
+    const method = (link.method || "POST").toUpperCase();
+    const url = link.href || state.activeEndpoint;
+    const opts = { method, headers: { "Content-Type": "application/json" } };
+    if (method === "POST" && link.body) {
+      opts.body = JSON.stringify(link.body);
+    }
+    const resp = await fetch(url, opts);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+    appendStacFeatures(data.features || []);
+    if (typeof data.numberMatched === "number") state.totalMatched = data.numberMatched;
+    state.nextLink = (data.links || []).find(l => l.rel === "next") || null;
+    return true;
+  }
+
+  async function loadNextEsgfPage() {
+    if (!state.nextLink || state.loadingMore) return;
+    state.loadingMore = true;
+    renderPaginationBar();
+    try {
+      await fetchStacNextPage();
+      updateEsgfStatusBanner();
+    } catch (err) {
+      document.getElementById("live-esgf-status").innerHTML = `<span class="warn-text">Error loading next page (${err.message}).</span>`;
+    } finally {
+      state.loadingMore = false;
+      renderLiveDatasets();
+    }
+  }
+
+  async function loadAllEsgfPages() {
+    if (!state.nextLink || state.loadingMore) return;
+    state.loadingMore = true;
+    renderPaginationBar();
+    const statusEl = document.getElementById("live-esgf-status");
+    let pages = 0;
+    try {
+      while (state.nextLink && pages < 20 && state.liveItems.length < 2000) {
+        pages++;
+        statusEl.innerHTML = `<span class="muted">Loading ${state.liveItems.length} / ${state.totalMatched} datasets...</span>`;
+        await fetchStacNextPage();
+        renderLiveDatasets();
+      }
+      updateEsgfStatusBanner();
+    } catch (err) {
+      statusEl.innerHTML = `<span class="warn-text">Stopped loading all pages (${err.message}). Showing ${state.liveItems.length}.</span>`;
+    } finally {
+      state.loadingMore = false;
+      renderLiveDatasets();
+    }
+  }
+
   async function checkLiveEsgf() {
     const statusEl = document.getElementById("live-esgf-status");
     const v = state.selectedVar;
     const exp = document.getElementById("select-experiment").value;
     const grid = document.getElementById("select-grid").value;
+    const pageChoice = (document.getElementById("select-page-size") || {}).value || "50";
+    const wantAll = pageChoice === "all";
+    const pageLimit = wantAll ? 100 : (parseInt(pageChoice, 10) || 50);
+
+    state.modelFilter = "all";
+    state.freqFilter = "all";
+    state.searchText = "";
+    const searchEl = document.getElementById("live-search-input");
+    if (searchEl) searchEl.value = "";
+    state.nextLink = null;
 
     statusEl.innerHTML = `<span class="muted">Querying ESGF-NG STAC for <span class="mono">${v.branded}</span> (${exp})...</span>`;
 
@@ -1121,7 +1335,7 @@ esgpull download
     const body = JSON.stringify({
       collections: ["CMIP7"],
       bbox: [state.lonMin, state.latMin, state.lonMax, state.latMax],
-      limit: 12,
+      limit: pageLimit,
       filter: { op: "and", args }
     });
 
@@ -1136,13 +1350,14 @@ esgpull download
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const data = await resp.json();
         state.liveItems = data.features || [];
-        const matched = data.numberMatched ?? state.liveItems.length;
-        renderLiveDatasets();
+        state.totalMatched = data.numberMatched ?? state.liveItems.length;
+        state.activeEndpoint = endpoint;
+        state.nextLink = (data.links || []).find(l => l.rel === "next") || null;
 
-        if (state.liveItems.length === 0) {
-          statusEl.innerHTML = `<span class="warn-text">0 live datasets found</span> for <span class="mono">${v.branded}</span> in <span class="mono">${exp}</span> (try <span class="mono">scen7-vl</span>, <span class="mono">scen7-h</span>, <span class="mono">historical</span>, or <span class="mono">esm-hist</span>).`;
-        } else {
-          statusEl.innerHTML = `<span class="ok-text">${matched} datasets matched</span> via <span class="mono">${new URL(endpoint).host}</span> (showing ${state.liveItems.length}).`;
+        renderLiveDatasets();
+        updateEsgfStatusBanner();
+        if (wantAll && state.nextLink) {
+          await loadAllEsgfPages();
         }
         return;
       } catch (err) {
@@ -1151,6 +1366,8 @@ esgpull download
     }
 
     state.liveItems = [];
+    state.totalMatched = 0;
+    state.nextLink = null;
     renderLiveDatasets();
     statusEl.innerHTML = `<span class="warn-text">Live browser fetch unavailable (${lastErr ? lastErr.message : "network"}).</span> Use <span class="mono">scripts/cmip7_check_area.py</span> in your terminal.`;
   }
@@ -1227,6 +1444,11 @@ esgpull download
     onFilterChanged,
     updateGeneratedCode,
     checkLiveEsgf,
+    loadNextEsgfPage,
+    loadAllEsgfPages,
+    setLiveModelFilter,
+    onLiveClientFilter,
+    toggleSelectAllVisible,
     previewItemFootprint,
     toggleFilesRow,
     toggleDatasetCart,

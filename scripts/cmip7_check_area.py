@@ -26,7 +26,8 @@ def query_stac(
     variable: str | None = None,
     branded_variable: str | None = None,
     frequency: str | None = None,
-    limit: int = 25,
+    limit: int = 50,
+    fetch_all: bool = False,
 ) -> dict[str, Any]:
     """Query ESGF-NG STAC API for CMIP7 items intersecting bbox."""
     clauses: list[dict[str, Any]] = [
@@ -48,14 +49,39 @@ def query_stac(
         "filter": clauses[0] if len(clauses) == 1 else {"op": "and", "args": clauses},
     }
 
-    req = urllib.request.Request(
-        stac_url,
-        data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json", "Accept": "application/json"},
-        method="POST",
-    )
-    with urllib.request.urlopen(req, timeout=20) as resp:
-        return json.loads(resp.read().decode("utf-8"))
+    def post_search(url: str, body: dict[str, Any]) -> dict[str, Any]:
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(body).encode("utf-8"),
+            headers={"Content-Type": "application/json", "Accept": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+
+    data = post_search(stac_url, payload)
+    if not fetch_all:
+        return data
+
+    all_features = list(data.get("features", []))
+    seen_ids = {f.get("id") for f in all_features}
+    next_link = next((l for l in data.get("links", []) if l.get("rel") == "next"), None)
+    pages = 0
+    while next_link and pages < 20 and len(all_features) < 2000:
+        pages += 1
+        next_body = next_link.get("body")
+        if not next_body:
+            break
+        page_data = post_search(next_link.get("href") or stac_url, next_body)
+        for feat in page_data.get("features", []):
+            fid = feat.get("id")
+            if fid not in seen_ids:
+                seen_ids.add(fid)
+                all_features.append(feat)
+        next_link = next((l for l in page_data.get("links", []) if l.get("rel") == "next"), None)
+
+    data["features"] = all_features
+    return data
 
 
 def build_python_snippet(
@@ -106,7 +132,8 @@ def main() -> int:
     parser.add_argument("--variable", "-v", default="tas", help="CMIP7 variable_id (e.g. tas, pr, tos, zos, mrso)")
     parser.add_argument("--branded", "-b", default=None, help="Optional CMIP7 variable_branded_name (e.g. tas_tmax-h2m-hxy-u)")
     parser.add_argument("--frequency", "-f", default=None, help="Optional frequency (e.g. mon, day)")
-    parser.add_argument("--limit", "-n", type=int, default=15, help="Max STAC items to inspect (default: 15)")
+    parser.add_argument("--limit", "-n", type=int, default=50, help="Max STAC items per page (default: 50)")
+    parser.add_argument("--all", "-a", action="store_true", help="Follow STAC pagination to return all matches (up to 2000)")
     parser.add_argument("--stac-url", default=DEFAULT_STAC_URL, help="ESGF-NG STAC /search endpoint")
     parser.add_argument("--json", action="store_true", help="Print raw summary JSON")
     parser.add_argument("--print-python", action="store_true", help="Print ready-to-run intake-esgf + xarray script")
@@ -130,6 +157,7 @@ def main() -> int:
             branded_variable=args.branded,
             frequency=args.frequency,
             limit=args.limit,
+            fetch_all=args.all,
         )
     except (urllib.error.URLError, TimeoutError) as exc:
         print(f"Error querying {args.stac_url}: {exc}", file=sys.stderr)
