@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CMIP7 Area Explorer &amp; Download Guide</title>
+  <title>CMIP7 Area Explorer &amp; ESGF-NG Portal</title>
   <link rel="stylesheet" href="styles/main.css" />
 </head>
 <body>
@@ -17,12 +17,13 @@
           <span class="badge">ESGF-NG / MIP-DRS7</span>
         </div>
         <p class="muted">
-          Draw or resize a bounding box on the Natural Earth atlas, inspect eligible CMIP7 branded variables, and generate area-subsetting download scripts.
+          Select any region on the Natural Earth 110m atlas, query live CMIP7 STAC datasets, inspect NetCDF files, and export area-subsetting scripts.
         </p>
       </div>
       <div class="btn-group">
         <button id="tab-btn-explorer" class="active" onclick="switchMainTab('explorer')">Area Explorer</button>
         <button id="tab-btn-guidelines" onclick="switchMainTab('guidelines')">CMIP7 Guidelines</button>
+        <button id="share-btn" onclick="copyShareUrl()" title="Copy shareable link for this region &amp; variable">Share Link</button>
         <button onclick="toggleTheme()" title="Switch Dark/Light theme">Theme</button>
       </div>
     </header>
@@ -131,17 +132,17 @@
           </div>
 
           <div class="muted small" style="border-top:1px solid var(--border); padding-top:10px;">
-            ESGF-NG archives store global/regional files; area subsetting runs via lazy Virtual Zarr / HTTP byte-range streaming (<span class="mono">intake-esgf</span> + <span class="mono">xarray</span>).
+            ESGF-NG archives store global/regional NetCDF files; area subsetting runs via lazy Virtual Zarr / HTTP byte-range streaming (<span class="mono">intake-esgf</span> + <span class="mono">xarray</span>).
           </div>
         </aside>
       </div>
 
-      <!-- Variables & Experiments -->
+      <!-- Variables & Live ESGF-NG Dataset Browser -->
       <section class="card">
         <div class="map-toolbar">
           <div>
-            <h2>2. Check Eligible CMIP7 Branded Variables &amp; Experiments</h2>
-            <p class="muted small">Select a variable row to update download snippets and check live ESGF-NG catalog availability.</p>
+            <h2>2. Select Variable &amp; Query Live ESGF-NG Catalog</h2>
+            <p class="muted small">Pick a CMIP7 branded variable and experiment, then scan live STAC datasets and NetCDF files.</p>
           </div>
           <div class="btn-group">
             <select id="filter-domain" onchange="renderVariablesTable()">
@@ -152,7 +153,7 @@
               <option value="seaIce">Sea Ice (seaIce)</option>
               <option value="ocnBgchem">Ocean Biogeochem (ocnBgchem)</option>
             </select>
-            <select id="select-experiment" onchange="updateGeneratedCode()">
+            <select id="select-experiment" onchange="onFilterChanged()">
               <option value="historical">historical (1850–2021)</option>
               <option value="esm-hist">esm-hist (Emissions-driven)</option>
               <option value="scen7-vl">scen7-vl (ScenarioMIP Very Low)</option>
@@ -163,7 +164,7 @@
               <option value="1pctCO2">1pctCO2 (Idealized)</option>
               <option value="abrupt-4xCO2">abrupt-4xCO2 (Idealized)</option>
             </select>
-            <select id="select-grid" onchange="updateGeneratedCode()">
+            <select id="select-grid" onchange="onFilterChanged()">
               <option value="any">Any CMIP7 grid_label</option>
               <option value="g110">g110 (Atmos/Land standard)</option>
               <option value="g126">g126 (Ocean standard)</option>
@@ -193,12 +194,45 @@
           </table>
         </div>
 
-        <div style="margin-top:14px; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px;">
-          <button class="active" onclick="checkLiveEsgf()">Check Live ESGF-NG Availability</button>
-          <span class="muted small">Queries <span class="mono">https://discovery.east.esgf.io/search</span> (CORS-enabled)</span>
+        <div style="margin-top:16px; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px;">
+          <div class="btn-group">
+            <button id="scan-esgf-btn" class="active" onclick="checkLiveEsgf()">Scan Live ESGF-NG Datasets</button>
+            <label class="small muted" style="display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
+              <input id="auto-query-toggle" type="checkbox" checked />
+              Auto-query on filter change
+            </label>
+          </div>
+          <span id="live-esgf-status" class="muted small">Ready to query <span class="mono">discovery.east.esgf.io/search</span></span>
         </div>
-        <div id="live-esgf-result" class="diag-box" style="margin-top:10px;">
-          <span class="muted small">Click "Check Live ESGF-NG Availability" to inspect active CMIP7 models, grid labels, and file sizes matching your box.</span>
+
+        <div id="live-datasets-wrap" class="table-wrap hidden">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:36px;">Cart</th>
+                <th>Model (source_id)</th>
+                <th>Experiment / Variant</th>
+                <th>Branded Variable</th>
+                <th>Freq · Grid</th>
+                <th>Time Span</th>
+                <th>Size</th>
+                <th>Files</th>
+              </tr>
+            </thead>
+            <tbody id="live-datasets-tbody"></tbody>
+          </table>
+        </div>
+
+        <div id="cart-bar" class="cart-bar hidden">
+          <div class="small">
+            <strong>Download Cart:</strong>
+            <span id="cart-summary" class="muted">0 datasets selected</span>
+          </div>
+          <div class="btn-group">
+            <button class="sm active" onclick="downloadWgetScript()">Download wget Script (.sh)</button>
+            <button class="sm" onclick="downloadPythonScript()">Download Python Subset (.py)</button>
+            <button class="sm" onclick="clearCart()">Clear Cart</button>
+          </div>
         </div>
       </section>
 
@@ -249,14 +283,14 @@
           <h2>3. Strict Grid Labels &amp; Active Experiments</h2>
           <ul class="muted" style="padding-left:18px; margin-top:10px;">
             <li><strong style="color:var(--fg);">Registered <span class="mono">grid_label</span>s:</strong> CMIP7 uses explicit standardized grid IDs (such as <span class="mono">g110</span>, <span class="mono">g126</span>, <span class="mono">g108</span>, <span class="mono">g124</span>).</li>
-            <li><strong style="color:var(--fg);">Assessment Fast Track (AFT):</strong> Includes <span class="mono">historical</span>, <span class="mono">esm-hist</span>, <span class="mono">piControl</span>, <span class="mono">1pctCO2</span>, <span class="mono">abrupt-4xCO2</span>, <span class="mono">amip</span>, and ScenarioMIP pathways (<span class="mono">scen7-vl</span>, <span class="mono">scen7-m</span>, <span class="mono">scen7-h</span>).</li>
+            <li><strong style="color:var(--fg);">Assessment Fast Track (AFT):</strong> Active experiments include <span class="mono">historical</span>, <span class="mono">esm-hist</span>, <span class="mono">piControl</span>, <span class="mono">1pctCO2</span>, <span class="mono">abrupt-4xCO2</span>, <span class="mono">amip</span>, and ScenarioMIP pathways (<span class="mono">scen7-vl</span>, <span class="mono">scen7-m</span>, <span class="mono">scen7-h</span>).</li>
           </ul>
         </div>
         <div class="card">
           <h2>4. Choosing the Right Download Path</h2>
           <ul class="muted" style="padding-left:18px; margin-top:10px;">
             <li><strong style="color:var(--fg);">Regional Subsets (&lt;20% globe):</strong> Use <span class="mono">intake-esgf</span> + <span class="mono">xarray.sel()</span> to pull only your lat/lon/time slice.</li>
-            <li><strong style="color:var(--fg);">CLI / Reproducible Scripts:</strong> Use <span class="mono">scripts/cmip7_check_area.py</span> or <span class="mono">ESGpull</span> (<span class="mono">v0.10.0+</span>).</li>
+            <li><strong class="mono">CLI / Browser Cart:</strong> Use the Download Cart above (<span class="mono">.sh</span> / <span class="mono">.py</span>) or <span class="mono">scripts/cmip7_check_area.py</span> / <span class="mono">ESGpull</span> (<span class="mono">v0.10.0+</span>).</li>
             <li><strong style="color:var(--fg);">Bulk Multi-Model Transfers:</strong> Use <strong style="color:var(--fg);">Globus</strong> via MetaGrid / ESGF Tier-1 nodes.</li>
           </ul>
         </div>

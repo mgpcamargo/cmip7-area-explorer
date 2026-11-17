@@ -39,8 +39,11 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+a { color: var(--primary); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
 .container {
-  max-width: 1320px;
+  max-width: 1340px;
   margin: 0 auto;
   padding: 20px;
   display: flex;
@@ -92,7 +95,7 @@ p { margin: 4px 0 0; }
 
 .btn-group { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 
-button, select, input {
+button, select, input[type="text"], input[type="number"] {
   font: inherit;
   color: var(--fg);
   background: var(--bg);
@@ -109,7 +112,7 @@ button {
   transition: opacity 0.15s, background 0.15s, border-color 0.15s;
 }
 
-button:hover { opacity: 0.9; border-color: var(--primary); }
+button:hover { opacity: 0.92; border-color: var(--primary); }
 
 button.active {
   background: var(--primary);
@@ -169,7 +172,7 @@ canvas#world-map {
   position: absolute;
   left: 10px;
   bottom: 10px;
-  background: rgba(15, 23, 42, 0.82);
+  background: rgba(15, 23, 42, 0.84);
   color: #f8fafc;
   border: 1px solid rgba(148, 163, 184, 0.35);
   backdrop-filter: blur(6px);
@@ -254,11 +257,44 @@ canvas#world-map {
 }
 
 table { width: 100%; border-collapse: collapse; font-size: 0.8rem; text-align: left; }
-th, td { padding: 9px 11px; border-bottom: 1px solid var(--border); }
+th, td { padding: 9px 11px; border-bottom: 1px solid var(--border); vertical-align: top; }
 thead th { background: var(--surface-alt); font-weight: 600; }
 tbody tr { cursor: pointer; transition: background 0.12s; }
 tbody tr:hover { background: var(--bg); }
 tbody tr.selected { background: var(--surface-alt); }
+tbody tr.files-row { cursor: default; background: var(--bg); }
+
+.cart-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  margin-top: 12px;
+}
+
+.file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px 0;
+}
+
+.file-item {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
 
 .code-box {
   position: relative;

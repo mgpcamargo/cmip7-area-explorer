@@ -7,6 +7,11 @@
   const NE_MAX_X = 2.735384723480633;
   const NE_MAX_Y = 1.422390506730596;
 
+  const STAC_ENDPOINTS = [
+    "https://discovery.east.esgf.io/search",
+    "https://api.stac.esgf.ceda.ac.uk/search"
+  ];
+
   // Live-verified CMIP7 Branded Variables Catalog (ESGF-NG / MIP-DS7)
   const VARIABLES = [
     { id: "tas", branded: "tas_tavg-h2m-hxy-u", compound: "atmos.tas_tavg-h2m-hxy-u.mon.glb", desc: "Near-Surface Air Temperature (2m mean)", domain: "atmos", mask: "u", freq: "mon, day", cmip6: "Amon.tas", defaultGrid: "g110" },
@@ -34,8 +39,8 @@
     lonMax: -34,
     regionName: "South America",
     lonMode: "360",
-    projection: "naturalEarth", // 'naturalEarth' | 'equirect'
-    toolMode: "draw", // 'draw' | 'pan'
+    projection: "naturalEarth",
+    toolMode: "draw",
     zoom: 1,
     panX: 0,
     panY: 0,
@@ -43,12 +48,16 @@
     codeTab: "python",
     hoverCountry: null,
     hoverCoords: null,
-    interactMode: null, // 'draw' | 'pan' | 'move' | 'resize-nw' | ...
+    interactMode: null,
     dragStartScreen: null,
     dragStartGeo: null,
     dragStartBox: null,
     dragStartPan: null,
-    surface: { hasLand: true, hasOcean: true, hasPolar: false, label: "Mixed (Land + Ocean)", countries: [] }
+    surface: { hasLand: true, hasOcean: true, hasPolar: false, label: "Mixed (Land + Ocean)", countries: [] },
+    liveItems: [],
+    cart: {}, // id -> STAC feature
+    expandedIds: {}, // id -> bool
+    previewBbox: null // [lonMin, latMin, lonMax, latMax] of hovered STAC dataset
   };
 
   const canvas = document.getElementById("world-map");
@@ -56,6 +65,62 @@
   const BASE_W = 960;
   const BASE_H = 500;
   const PAD = 20;
+
+  // --- URL Hash Persistence ---
+  function loadStateFromHash() {
+    if (typeof location === "undefined" || !location.hash || location.hash.length < 2) return;
+    try {
+      const params = new URLSearchParams(location.hash.slice(1));
+      const bbox = params.get("bbox");
+      if (bbox) {
+        const parts = bbox.split(",").map(Number);
+        if (parts.length === 4 && parts.every(n => !Number.isNaN(n))) {
+          state.lonMin = Math.max(-180, Math.min(parts[0], parts[2]));
+          state.latMin = Math.max(-90, Math.min(parts[1], parts[3]));
+          state.lonMax = Math.min(180, Math.max(parts[0], parts[2]));
+          state.latMax = Math.min(90, Math.max(parts[1], parts[3]));
+          state.regionName = params.get("region") || "Shared Box";
+        }
+      }
+      const varKey = params.get("var");
+      if (varKey) {
+        const found = VARIABLES.find(v => v.rowKey === varKey || v.branded === varKey);
+        if (found) state.selectedVar = found;
+      }
+      const exp = params.get("exp");
+      if (exp) {
+        const expEl = document.getElementById("select-experiment");
+        if (expEl && Array.from(expEl.options).some(o => o.value === exp)) expEl.value = exp;
+      }
+      const grid = params.get("grid");
+      if (grid) {
+        const gEl = document.getElementById("select-grid");
+        if (gEl && Array.from(gEl.options).some(o => o.value === grid)) gEl.value = grid;
+      }
+      const proj = params.get("proj");
+      if (proj === "equirect" || proj === "naturalEarth") {
+        state.projection = proj;
+      }
+    } catch (_) {
+      // Ignore malformed hashes
+    }
+  }
+
+  function syncHash() {
+    if (typeof history === "undefined" || typeof location === "undefined") return;
+    if (location.protocol !== "http:" && location.protocol !== "https:") return;
+    const exp = document.getElementById("select-experiment").value;
+    const grid = document.getElementById("select-grid").value;
+    const params = new URLSearchParams({
+      bbox: `${state.lonMin},${state.latMin},${state.lonMax},${state.latMax}`,
+      var: state.selectedVar.rowKey,
+      exp,
+      grid,
+      proj: state.projection,
+      region: state.regionName
+    });
+    history.replaceState(null, "", "#" + params.toString());
+  }
 
   // --- Projection Math ---
   function neForward(lonDeg, latDeg) {
@@ -65,7 +130,7 @@
     const phi4 = phi2 * phi2;
     const x = lam * (A0 + phi2 * (A1 + phi2 * (A2 + phi4 * (A3 + phi2 * A4))));
     const y = phi * (B0 + phi2 * (B1 + phi4 * (B2 + phi2 * (B3 + phi2 * B4))));
-    return [x / NE_MAX_X, y / NE_MAX_Y]; // normalized [-1..1]
+    return [x / NE_MAX_X, y / NE_MAX_Y];
   }
 
   function neInverse(nx, ny) {
@@ -188,7 +253,6 @@
       }
     }
 
-    // Also include small island/border countries whose bbox + polygon vertices fall inside the selection
     for (const c of WORLD.countries) {
       if (hitCountries.has(c.n)) continue;
       if (!boxesOverlap(state.lonMin, state.latMin, state.lonMax, state.latMax, c.b[0], c.b[1], c.b[2], c.b[3])) continue;
@@ -288,27 +352,27 @@
     ctx.closePath();
   }
 
-  function traceBoxPerimeter() {
+  function traceBoxPerimeter(lonMin, latMin, lonMax, latMax) {
     const segs = 24;
     ctx.beginPath();
     for (let i = 0; i <= segs; i++) {
-      const lon = state.lonMin + ((state.lonMax - state.lonMin) * i) / segs;
-      const [x, y] = projectToScreen(lon, state.latMax);
+      const lon = lonMin + ((lonMax - lonMin) * i) / segs;
+      const [x, y] = projectToScreen(lon, latMax);
       if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
     }
     for (let i = 1; i <= segs; i++) {
-      const lat = state.latMax - ((state.latMax - state.latMin) * i) / segs;
-      const [x, y] = projectToScreen(state.lonMax, lat);
+      const lat = latMax - ((latMax - latMin) * i) / segs;
+      const [x, y] = projectToScreen(lonMax, lat);
       ctx.lineTo(x, y);
     }
     for (let i = 1; i <= segs; i++) {
-      const lon = state.lonMax - ((state.lonMax - state.lonMin) * i) / segs;
-      const [x, y] = projectToScreen(lon, state.latMin);
+      const lon = lonMax - ((lonMax - lonMin) * i) / segs;
+      const [x, y] = projectToScreen(lon, latMin);
       ctx.lineTo(x, y);
     }
     for (let i = 1; i <= segs; i++) {
-      const lat = state.latMin + ((state.latMax - state.latMin) * i) / segs;
-      const [x, y] = projectToScreen(state.lonMin, lat);
+      const lat = latMin + ((latMax - latMin) * i) / segs;
+      const [x, y] = projectToScreen(lonMin, lat);
       ctx.lineTo(x, y);
     }
     ctx.closePath();
@@ -370,12 +434,10 @@
     ctx.fillStyle = outerBg;
     ctx.fillRect(0, 0, BASE_W, BASE_H);
 
-    // Clip to globe outline
     ctx.save();
     traceGlobeBoundary();
     ctx.clip();
 
-    // Ocean latitude gradient
     const grad = ctx.createLinearGradient(0, 0, 0, BASE_H);
     grad.addColorStop(0, oceanTop);
     grad.addColorStop(0.5, oceanEq);
@@ -383,7 +445,6 @@
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, BASE_W, BASE_H);
 
-    // Graticule (30 deg meridians & parallels)
     ctx.strokeStyle = gridColor;
     ctx.lineWidth = 1;
     for (let lon = -150; lon <= 150; lon += 30) {
@@ -403,7 +464,6 @@
       ctx.stroke();
     }
 
-    // Equator, Tropics & Polar Circles
     ctx.save();
     ctx.setLineDash([4, 4]);
     ctx.strokeStyle = specialLineColor;
@@ -417,7 +477,6 @@
     });
     ctx.restore();
 
-    // Countries fill + borders (Natural Earth 110m)
     ctx.fillStyle = landFill;
     ctx.strokeStyle = borderColor;
     ctx.lineWidth = 0.75;
@@ -428,7 +487,6 @@
       ctx.stroke();
     }
 
-    // Highlight hovered country
     if (state.hoverCountry) {
       ctx.save();
       ctx.fillStyle = landHoverFill;
@@ -441,7 +499,6 @@
       ctx.restore();
     }
 
-    // Lakes
     if (WORLD.lakes && WORLD.lakes.length) {
       ctx.fillStyle = lakeFill;
       ctx.strokeStyle = coastColor;
@@ -452,9 +509,36 @@
       ctx.stroke();
     }
 
-    // Selection Bounding Box
+    // Country labels when zoomed in
+    if (state.zoom >= 1.8) {
+      ctx.font = "500 12px -apple-system, sans-serif";
+      ctx.fillStyle = labelColor;
+      ctx.textAlign = "center";
+      for (const c of WORLD.countries) {
+        const areaApprox = (c.b[2] - c.b[0]) * (c.b[3] - c.b[1]);
+        if (areaApprox < 12) continue;
+        const [cx, cy] = projectToScreen((c.b[0] + c.b[2]) / 2, (c.b[1] + c.b[3]) / 2);
+        if (cx >= 0 && cx <= BASE_W && cy >= 0 && cy <= BASE_H) {
+          ctx.fillText(c.n, cx, cy);
+        }
+      }
+      ctx.textAlign = "left";
+    }
+
+    // Hovered STAC dataset footprint preview
+    if (state.previewBbox) {
+      ctx.save();
+      ctx.setLineDash([5, 4]);
+      traceBoxPerimeter(state.previewBbox[0], state.previewBbox[1], state.previewBbox[2], state.previewBbox[3]);
+      ctx.strokeStyle = "#34d399";
+      ctx.lineWidth = 1.8;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // User Selection Bounding Box
     ctx.save();
-    traceBoxPerimeter();
+    traceBoxPerimeter(state.lonMin, state.latMin, state.lonMax, state.latMax);
     ctx.fillStyle = boxFill;
     ctx.fill();
     ctx.strokeStyle = boxStroke;
@@ -464,7 +548,6 @@
 
     ctx.restore(); // End globe clip
 
-    // Outer Globe Rim
     ctx.save();
     traceGlobeBoundary();
     ctx.strokeStyle = coastColor;
@@ -472,7 +555,6 @@
     ctx.stroke();
     ctx.restore();
 
-    // Selection Resize Handles (drawn outside clip so always visible)
     const handles = getBoxHandlePoints();
     for (const h of handles) {
       ctx.fillStyle = "#ffffff";
@@ -482,7 +564,6 @@
       ctx.strokeRect(h.pt[0] - 4.5, h.pt[1] - 4.5, 9, 9);
     }
 
-    // Dimension badge on top edge of selection box
     const [cx, cy] = projectToScreen((state.lonMin + state.lonMax) / 2, state.latMax);
     const dLat = Math.round((state.latMax - state.latMin) * 10) / 10;
     const dLon = Math.round((state.lonMax - state.lonMin) * 10) / 10;
@@ -496,7 +577,6 @@
     ctx.fillStyle = "#f8fafc";
     ctx.fillText(dimText, bx + 6, by + 14);
 
-    // Coordinate labels along left/bottom when unzoomed
     if (state.zoom <= 1.15) {
       ctx.font = "500 12px ui-monospace, monospace";
       ctx.fillStyle = labelColor;
@@ -528,9 +608,7 @@
     return geo.lon >= state.lonMin && geo.lon <= state.lonMax && geo.lat >= state.latMin && geo.lat <= state.latMax;
   }
 
-  function snapHalf(val) {
-    return Math.round(val * 2) / 2;
-  }
+  function snapHalf(val) { return Math.round(val * 2) / 2; }
 
   canvas.addEventListener("pointerdown", (e) => {
     const pos = getBasePointerPos(e);
@@ -634,8 +712,10 @@
   });
 
   canvas.addEventListener("pointerup", () => {
+    const wasEditing = state.interactMode && state.interactMode !== "pan";
     state.interactMode = null;
     canvas.style.cursor = state.toolMode === "pan" ? "grab" : "crosshair";
+    if (wasEditing) maybeAutoQuery();
   });
 
   canvas.addEventListener("wheel", (e) => {
@@ -663,6 +743,7 @@
     document.getElementById("proj-ne").classList.toggle("active", proj === "naturalEarth");
     document.getElementById("proj-eq").classList.toggle("active", proj === "equirect");
     drawMap();
+    syncHash();
   }
 
   function setToolMode(mode) {
@@ -692,6 +773,7 @@
     state.lonMax = Math.min(180, Math.max(lo1, lo2));
     state.regionName = "Custom Box";
     refreshAll();
+    maybeAutoQuery();
   }
 
   function applyPreset(name, latMin, latMax, lonMin, lonMax) {
@@ -700,6 +782,7 @@
     state.lonMin = lonMin; state.lonMax = lonMax;
     syncInputs();
     refreshAll();
+    maybeAutoQuery();
   }
 
   function resetGlobal() { applyPreset("Global", -90, 90, -180, 180); }
@@ -746,34 +829,40 @@
       state.selectedVar = found;
       renderVariablesTable();
       updateGeneratedCode();
+      syncHash();
+      maybeAutoQuery();
     }
+  }
+
+  function onFilterChanged() {
+    updateGeneratedCode();
+    syncHash();
+    maybeAutoQuery();
   }
 
   function to360(lon) { return lon < 0 ? lon + 360 : lon; }
 
-  function updateGeneratedCode() {
+  function buildPythonCode(sourceIds) {
     const v = state.selectedVar;
     const exp = document.getElementById("select-experiment").value;
     const grid = document.getElementById("select-grid").value;
     const tStart = document.getElementById("input-time-start").value;
     const tEnd = document.getElementById("input-time-end").value;
 
-    document.getElementById("summary-selection").textContent =
-      `${v.branded} · ${exp} · [${state.latMin}°, ${state.latMax}°] × [${state.lonMin}°, ${state.lonMax}°]`;
-
     const gridLinePy = grid === "any" ? "" : `\n    grid_label="${grid}",`;
-    let code = "";
+    const sourceLinePy = sourceIds && sourceIds.length
+      ? `\n    source_id=${JSON.stringify(sourceIds)},`
+      : "";
 
-    if (state.codeTab === "python") {
-      const use360 = state.lonMode === "360";
-      const lonMinStr = use360 ? to360(state.lonMin) : state.lonMin;
-      const lonMaxStr = use360 ? to360(state.lonMax) : state.lonMax;
-      const sliceLogic = (use360 && state.lonMin < 0 && state.lonMax > 0)
-        ? `# Box crosses Prime Meridian (0°): roll 0..360 coordinates to -180..180 before slicing\nds = ds.assign_coords(lon=((ds.lon + 180) % 360) - 180).sortby("lon")\nsubset = ds.sel(lat=slice(${state.latMin}, ${state.latMax}), lon=slice(${state.lonMin}, ${state.lonMax}), time=slice("${tStart}", "${tEnd}"))`
-        : `subset = ds.sel(lat=slice(${state.latMin}, ${state.latMax}), lon=slice(${lonMinStr}, ${lonMaxStr}), time=slice("${tStart}", "${tEnd}"))`;
+    const use360 = state.lonMode === "360";
+    const lonMinStr = use360 ? to360(state.lonMin) : state.lonMin;
+    const lonMaxStr = use360 ? to360(state.lonMax) : state.lonMax;
+    const sliceLogic = (use360 && state.lonMin < 0 && state.lonMax > 0)
+      ? `# Box crosses Prime Meridian (0°): roll 0..360 coordinates to -180..180 before slicing\nds = ds.assign_coords(lon=((ds.lon + 180) % 360) - 180).sortby("lon")\nsubset = ds.sel(lat=slice(${state.latMin}, ${state.latMax}), lon=slice(${state.lonMin}, ${state.lonMax}), time=slice("${tStart}", "${tEnd}"))`
+      : `subset = ds.sel(lat=slice(${state.latMin}, ${state.latMax}), lon=slice(${lonMinStr}, ${lonMaxStr}), time=slice("${tStart}", "${tEnd}"))`;
 
-      const slug = state.regionName.toLowerCase().replace(/[^a-z0-9]+/g, "_");
-      code = `# Requires: pip install intake-esgf xarray zarr netcdf4
+    const slug = state.regionName.toLowerCase().replace(/[^a-z0-9]+/g, "_");
+    return `# Requires: pip install intake-esgf xarray zarr netcdf4
 import intake_esgf
 import xarray as xr
 
@@ -782,7 +871,7 @@ cat = intake_esgf.ESGFCatalog().search(
     project="CMIP7",
     experiment_id="${exp}",
     variable_id="${v.id}",
-    variable_branded_name="${v.branded}",${gridLinePy}
+    variable_branded_name="${v.branded}",${gridLinePy}${sourceLinePy}
 )
 print(cat)
 
@@ -797,9 +886,27 @@ ${sliceLogic}
 out_file = "cmip7_${v.branded}_${exp}_${slug}.nc"
 subset.to_netcdf(out_file)
 print("Saved:", out_file)`;
+  }
+
+  function updateGeneratedCode() {
+    const v = state.selectedVar;
+    const exp = document.getElementById("select-experiment").value;
+    const grid = document.getElementById("select-grid").value;
+    const tStart = document.getElementById("input-time-start").value;
+    const tEnd = document.getElementById("input-time-end").value;
+
+    document.getElementById("summary-selection").textContent =
+      `${v.branded} · ${exp} · [${state.latMin}°, ${state.latMax}°] × [${state.lonMin}°, ${state.lonMax}°]`;
+
+    let code = "";
+    if (state.codeTab === "python") {
+      const cartSources = Array.from(new Set(
+        Object.values(state.cart).map(f => f.properties && f.properties["cmip7:source_id"]).filter(Boolean)
+      ));
+      code = buildPythonCode(cartSources);
     } else if (state.codeTab === "stac") {
       const extraGrid = grid === "any" ? "" : `,\n        {"op": "=", "args": [{"property": "cmip7:grid_label"}, "${grid}"]}`;
-      code = `# Live ESGF-NG STAC search endpoint (verified CORS-enabled)
+      code = `# Live ESGF-NG STAC search endpoint (CORS-enabled)
 curl -s -X POST "https://discovery.east.esgf.io/search" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -818,7 +925,7 @@ curl -s -X POST "https://discovery.east.esgf.io/search" \\
   }' | jq '.features[] | {id, source: .properties["cmip7:source_id"], grid: .properties["cmip7:grid_label"], files: (.assets | keys)}'`;
     } else {
       const gridFacet = grid === "any" ? "" : ` grid_label:${grid}`;
-      code = `# Option A: Repo Python Checker CLI (queries live STAC without extra packages)
+      code = `# Option A: Repo Python Checker CLI (zero external dependencies)
 python3 scripts/cmip7_check_area.py \\
   --bbox ${state.lonMin} ${state.latMin} ${state.lonMax} ${state.latMax} \\
   --experiment ${exp} --variable ${v.id} --branded ${v.branded}
@@ -841,14 +948,166 @@ esgpull download
     document.getElementById("code-output").textContent = code;
   }
 
-  // --- Live ESGF-NG STAC Query ---
+  // --- Live ESGF-NG Dataset Browser & Download Cart ---
+  function formatSize(bytes) {
+    if (!bytes) return "—";
+    const mb = bytes / (1024 * 1024);
+    return mb >= 1024 ? (mb / 1024).toFixed(2) + " GB" : mb.toFixed(1) + " MB";
+  }
+
+  function formatYearRange(props) {
+    const s = (props.start_datetime || "").slice(0, 4);
+    const e = (props.end_datetime || "").slice(0, 4);
+    return (s && e) ? `${s}–${e}` : "—";
+  }
+
+  function renderLiveDatasets() {
+    const wrap = document.getElementById("live-datasets-wrap");
+    const tbody = document.getElementById("live-datasets-tbody");
+
+    if (!state.liveItems.length) {
+      wrap.classList.add("hidden");
+      tbody.innerHTML = "";
+      return;
+    }
+
+    wrap.classList.remove("hidden");
+    tbody.innerHTML = state.liveItems.map((item, idx) => {
+      const p = item.properties || {};
+      const id = item.id;
+      const checked = !!state.cart[id];
+      const expanded = !!state.expandedIds[id];
+      const assets = Object.entries(item.assets || {});
+      let html = `
+        <tr onmouseenter="previewItemFootprint(${idx})" onmouseleave="previewItemFootprint(-1)" onclick="toggleFilesRow(${idx})">
+          <td onclick="event.stopPropagation()">
+            <input type="checkbox" ${checked ? "checked" : ""} onchange="toggleDatasetCart(${idx}, this.checked)" />
+          </td>
+          <td><strong>${p["cmip7:source_id"] || "—"}</strong><div class="muted small">${p["cmip7:institution_id"] || ""}</div></td>
+          <td class="mono">${p["cmip7:experiment_id"] || "—"}<div class="muted small">${p["cmip7:variant_label"] || ""}</div></td>
+          <td class="mono">${p["cmip7:variable_branded_name"] || "—"}</td>
+          <td class="mono">${p["cmip7:frequency"] || "—"} · ${p["cmip7:grid_label"] || "—"}</td>
+          <td class="mono">${formatYearRange(p)}</td>
+          <td class="mono">${formatSize(p.size)}</td>
+          <td><button class="sm" onclick="event.stopPropagation(); toggleFilesRow(${idx})">${expanded ? "Hide" : "Files"} (${assets.length})</button></td>
+        </tr>
+      `;
+      if (expanded) {
+        const filesHtml = assets.map(([fname, a]) => {
+          const href = a.href || "#";
+          const fSize = formatSize(a["file:size"]);
+          return `
+            <div class="file-item">
+              <span class="mono small">${fname}</span>
+              <div class="btn-group">
+                <span class="muted small mono">${fSize}</span>
+                <a class="small" href="${href}" target="_blank" rel="noopener noreferrer">Download .nc</a>
+              </div>
+            </div>
+          `;
+        }).join("");
+        html += `<tr class="files-row"><td colspan="8"><div class="file-list">${filesHtml || '<span class="muted small">No HTTP file assets listed.</span>'}</div></td></tr>`;
+      }
+      return html;
+    }).join("");
+  }
+
+  function updateCartBar() {
+    const bar = document.getElementById("cart-bar");
+    const items = Object.values(state.cart);
+    if (!items.length) {
+      bar.classList.add("hidden");
+      return;
+    }
+    bar.classList.remove("hidden");
+    let fileCount = 0;
+    let totalBytes = 0;
+    for (const it of items) {
+      const assets = Object.values(it.assets || {});
+      fileCount += assets.length;
+      totalBytes += (it.properties && it.properties.size) || 0;
+    }
+    document.getElementById("cart-summary").textContent =
+      `${items.length} dataset(s) · ${fileCount} NetCDF file(s) · ${formatSize(totalBytes)}`;
+  }
+
+  function previewItemFootprint(idx) {
+    if (idx < 0 || !state.liveItems[idx] || !state.liveItems[idx].bbox) {
+      state.previewBbox = null;
+    } else {
+      state.previewBbox = state.liveItems[idx].bbox;
+    }
+    drawMap();
+  }
+
+  function toggleFilesRow(idx) {
+    const item = state.liveItems[idx];
+    if (!item) return;
+    state.expandedIds[item.id] = !state.expandedIds[item.id];
+    renderLiveDatasets();
+  }
+
+  function toggleDatasetCart(idx, checked) {
+    const item = state.liveItems[idx];
+    if (!item) return;
+    if (checked) state.cart[item.id] = item;
+    else delete state.cart[item.id];
+    updateCartBar();
+    updateGeneratedCode();
+  }
+
+  function clearCart() {
+    state.cart = {};
+    updateCartBar();
+    renderLiveDatasets();
+    updateGeneratedCode();
+  }
+
+  function triggerDownload(filename, content, mime) {
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function downloadWgetScript() {
+    const items = Object.values(state.cart);
+    if (!items.length) return;
+    const lines = [
+      "#!/usr/bin/env bash",
+      "set -euo pipefail",
+      `# CMIP7 NetCDF downloads generated by CMIP7 Area Explorer (${state.regionName}: bbox=[${state.lonMin},${state.latMin},${state.lonMax},${state.latMax}])`,
+      ""
+    ];
+    for (const it of items) {
+      lines.push(`# Dataset: ${it.id}`);
+      for (const [fname, asset] of Object.entries(it.assets || {})) {
+        if (asset.href) lines.push(`wget -c "${asset.href}" -O "${fname}"`);
+      }
+      lines.push("");
+    }
+    triggerDownload("download_cmip7.sh", lines.join("\n"), "text/x-shellscript");
+  }
+
+  function downloadPythonScript() {
+    const cartSources = Array.from(new Set(
+      Object.values(state.cart).map(f => f.properties && f.properties["cmip7:source_id"]).filter(Boolean)
+    ));
+    triggerDownload("subset_cmip7.py", buildPythonCode(cartSources), "text/x-python");
+  }
+
   async function checkLiveEsgf() {
-    const outEl = document.getElementById("live-esgf-result");
+    const statusEl = document.getElementById("live-esgf-status");
     const v = state.selectedVar;
     const exp = document.getElementById("select-experiment").value;
     const grid = document.getElementById("select-grid").value;
 
-    outEl.innerHTML = `<span class="muted">Querying discovery.east.esgf.io/search for ${v.branded} (${exp})...</span>`;
+    statusEl.innerHTML = `<span class="muted">Querying ESGF-NG STAC for <span class="mono">${v.branded}</span> (${exp})...</span>`;
 
     const args = [
       { op: "=", args: [{ property: "latest" }, "true"] },
@@ -859,36 +1118,48 @@ esgpull download
       args.push({ op: "=", args: [{ property: "cmip7:grid_label" }, grid] });
     }
 
-    try {
-      const resp = await fetch("https://discovery.east.esgf.io/search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          collections: ["CMIP7"],
-          bbox: [state.lonMin, state.latMin, state.lonMax, state.latMax],
-          limit: 8,
-          filter: { op: "and", args }
-        })
-      });
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const data = await resp.json();
-      const features = data.features || [];
-      const matched = data.numberMatched ?? features.length;
+    const body = JSON.stringify({
+      collections: ["CMIP7"],
+      bbox: [state.lonMin, state.latMin, state.lonMax, state.latMax],
+      limit: 12,
+      filter: { op: "and", args }
+    });
 
-      if (features.length === 0) {
-        outEl.innerHTML = `<span class="warn-text">0 live datasets found</span> for <span class="mono">${v.branded}</span> in <span class="mono">${exp}</span> (try another experiment such as <span class="mono">scen7-vl</span>, <span class="mono">scen7-h</span>, <span class="mono">historical</span>, or <span class="mono">esm-hist</span>).`;
+    let lastErr = null;
+    for (const endpoint of STAC_ENDPOINTS) {
+      try {
+        const resp = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body
+        });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+        state.liveItems = data.features || [];
+        const matched = data.numberMatched ?? state.liveItems.length;
+        renderLiveDatasets();
+
+        if (state.liveItems.length === 0) {
+          statusEl.innerHTML = `<span class="warn-text">0 live datasets found</span> for <span class="mono">${v.branded}</span> in <span class="mono">${exp}</span> (try <span class="mono">scen7-vl</span>, <span class="mono">scen7-h</span>, <span class="mono">historical</span>, or <span class="mono">esm-hist</span>).`;
+        } else {
+          statusEl.innerHTML = `<span class="ok-text">${matched} datasets matched</span> via <span class="mono">${new URL(endpoint).host}</span> (showing ${state.liveItems.length}).`;
+        }
         return;
+      } catch (err) {
+        lastErr = err;
       }
+    }
 
-      const rows = features.map(f => {
-        const p = f.properties || {};
-        const mb = p.size ? (p.size / (1024 * 1024)).toFixed(1) + " MB" : "—";
-        const files = Object.keys(f.assets || {}).length;
-        return `<div class="small mono">• ${p["cmip7:source_id"]} | ${p["cmip7:frequency"]} | ${p["cmip7:grid_label"]} | ${p["cmip7:variant_label"]} | ${mb} (${files} files)</div>`;
-      }).join("");
-      outEl.innerHTML = `<div class="ok-text">Live ESGF-NG match: ${matched} datasets intersecting box (showing ${features.length}):</div>${rows}`;
-    } catch (err) {
-      outEl.innerHTML = `<span class="warn-text">Live browser fetch unavailable (${err.message}).</span> Run <span class="mono">python3 scripts/cmip7_check_area.py --bbox ${state.lonMin} ${state.latMin} ${state.lonMax} ${state.latMax} -e ${exp} -v ${v.id} -b ${v.branded}</span> in your terminal.`;
+    state.liveItems = [];
+    renderLiveDatasets();
+    statusEl.innerHTML = `<span class="warn-text">Live browser fetch unavailable (${lastErr ? lastErr.message : "network"}).</span> Use <span class="mono">scripts/cmip7_check_area.py</span> in your terminal.`;
+  }
+
+  function maybeAutoQuery() {
+    const toggle = document.getElementById("auto-query-toggle");
+    if (!toggle || !toggle.checked) return;
+    if (typeof location !== "undefined" && (location.protocol === "http:" || location.protocol === "https:")) {
+      checkLiveEsgf();
     }
   }
 
@@ -923,11 +1194,23 @@ esgpull download
     });
   }
 
+  function copyShareUrl() {
+    syncHash();
+    const url = typeof location !== "undefined" ? location.href : "";
+    if (!url || !navigator.clipboard) return;
+    navigator.clipboard.writeText(url).then(() => {
+      const btn = document.getElementById("share-btn");
+      btn.textContent = "Link Copied!";
+      setTimeout(() => { btn.textContent = "Share Link"; }, 1500);
+    });
+  }
+
   function refreshAll() {
     drawMap();
     analyzeSelectedArea();
     renderVariablesTable();
     updateGeneratedCode();
+    syncHash();
   }
 
   Object.assign(window, {
@@ -941,13 +1224,26 @@ esgpull download
     setLonMode,
     renderVariablesTable,
     selectVariable,
+    onFilterChanged,
     updateGeneratedCode,
     checkLiveEsgf,
+    previewItemFootprint,
+    toggleFilesRow,
+    toggleDatasetCart,
+    clearCart,
+    downloadWgetScript,
+    downloadPythonScript,
     switchCodeTab,
     switchMainTab,
     toggleTheme,
-    copyCode
+    copyCode,
+    copyShareUrl
   });
 
+  loadStateFromHash();
+  syncInputs();
+  document.getElementById("proj-ne").classList.toggle("active", state.projection === "naturalEarth");
+  document.getElementById("proj-eq").classList.toggle("active", state.projection === "equirect");
   refreshAll();
+  maybeAutoQuery();
 })();
