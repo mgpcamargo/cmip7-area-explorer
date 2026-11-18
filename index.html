@@ -17,7 +17,7 @@
           <span class="badge">ESGF-NG / MIP-DRS7</span>
         </div>
         <p class="muted">
-          Select any region on the Natural Earth 110m atlas, query live CMIP7 STAC datasets, inspect NetCDF files, and export area-subsetting scripts.
+          Select any region, query live CMIP7 datasets, inspect NetCDF files, and export area-cropping scripts.
         </p>
       </div>
       <div class="btn-group">
@@ -38,7 +38,6 @@
           <div class="map-toolbar">
             <div>
               <h2>1. Select Geographic Area</h2>
-              <p class="muted small">Drag to draw a box, drag inside to move, drag corners/edges to resize, or scroll to zoom.</p>
             </div>
             <div class="btn-group">
               <button id="proj-ne" class="sm active" onclick="setProjection('naturalEarth')">Natural Earth</button>
@@ -127,7 +126,6 @@
                 <span id="diag-countries">—</span>
               </div>
               <div id="diag-realms" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
-              <p id="diag-advice" class="muted small"></p>
             </div>
           </div>
 
@@ -136,7 +134,7 @@
             <div class="two-path-grid">
               <div class="path-card">
                 <div style="font-weight:600; color:var(--fg);">A. Area-only output (Recommended)</div>
-                <div class="muted small" style="margin-top:3px;">Run the Step 3 Python script. It slices your box before saving <span class="mono">.nc</span>.</div>
+                <div class="muted small" style="margin-top:3px;">Export and run the Step 3 Python script on your computer — running that script saves a cropped <span class="mono">.nc</span> file (this web page only generates the script).</div>
               </div>
               <div class="path-card">
                 <div style="font-weight:600; color:var(--fg);">B. Direct .nc links / wget</div>
@@ -296,36 +294,37 @@
     <div id="panel-guidelines" class="hidden" style="display:flex; flex-direction:column; gap:18px;">
       <div class="grid-2 grid-2-md">
         <div class="card">
-          <h2>1. ESGF-NG Architecture &amp; Authentication</h2>
+          <h2>1. How CMIP7 Data Access Works</h2>
           <ul class="muted" style="padding-left:18px; margin-top:10px;">
-            <li><strong style="color:var(--fg);">STAC APIs replace Solr:</strong> Discovery runs via SpatioTemporal Asset Catalogs (<span class="mono">discovery.east.esgf.io/search</span>, <span class="mono">discovery.west.esgf.io/search</span>, <span class="mono">api.stac.esgf.ceda.ac.uk/search</span>).</li>
-            <li><strong style="color:var(--fg);">No OpenID:</strong> Authentication on MetaGrid (<span class="mono">metagrid.esgf-west.org</span>) uses institutional SSO or GitHub.</li>
-            <li><strong style="color:var(--fg);">Streaming &amp; Virtual Zarr:</strong> <span class="mono">intake-esgf</span> + <span class="mono">xarray</span> allow lazy subsetting before writing local NetCDF4 files.</li>
+            <li><strong style="color:var(--fg);">Modern catalog search:</strong> CMIP7 replaces legacy portals with web catalogs (<span class="mono">discovery.east.esgf.io</span>, <span class="mono">api.stac.esgf.ceda.ac.uk</span>).</li>
+            <li><strong style="color:var(--fg);">Simple sign-in (No OpenID):</strong> Sign in to MetaGrid (<span class="mono">metagrid.esgf-west.org</span>) using an institutional login or GitHub when needed.</li>
+            <li><strong style="color:var(--fg);">Global files + local Python cropping:</strong> Official ESGF mirrors store full-globe <span class="mono">.nc</span> files. This site builds a Python script (<span class="mono">intake-esgf</span> + <span class="mono">xarray</span>) that, when you run it on your computer, crops the data to your box and saves a smaller <span class="mono">.nc</span> file.</li>
           </ul>
         </div>
         <div class="card">
-          <h2>2. CMIP7 Branded Variables &amp; MIP-DRS7</h2>
-          <p class="muted" style="margin-top:10px;">Static CMIP6 table prefixes (e.g. <span class="mono">Amon.tas</span>, <span class="mono">day.tasmax</span>) are replaced by branded variables encoding temporal, vertical, horizontal, and area sampling:</p>
-          <div class="code-box mono small">tas_tmax-h2m-hxy-u · pr_tavg-u-hxy-u · tos_tavg-u-hxy-sea</div>
+          <h2>2. How CMIP7 Names Variables (Plain Guide)</h2>
+          <p class="muted" style="margin-top:10px;">Instead of CMIP6 names like <span class="mono">day.tasmax</span>, CMIP7 keeps the short name first and appends details after an underscore:</p>
+          <div class="code-box mono small">tas_tmax-h2m-hxy-u</div>
           <ul class="muted" style="padding-left:18px; margin-top:8px;">
-            <li><span class="mono">tavg / tmax / tmin</span>: Temporal reduction</li>
-            <li><span class="mono">h2m / h10m / u</span>: Vertical sampling level</li>
-            <li><span class="mono">u / sea / lnd</span>: Area mask (<span class="mono">cmip7:area_label</span>)</li>
+            <li><span class="mono" style="color:var(--fg);">tas</span> — base variable (air temperature; <span class="mono">pr</span> = precipitation, <span class="mono">tos</span> = sea surface temp)</li>
+            <li><span class="mono" style="color:var(--fg);">tmax / tavg</span> — daily maximum vs. time average</li>
+            <li><span class="mono" style="color:var(--fg);">h2m</span> — height/level (2m above ground; <span class="mono">u</span> = standard surface)</li>
+            <li><span class="mono" style="color:var(--fg);">u / sea / lnd</span> — coverage mask (everywhere, ocean-only, or land-only)</li>
           </ul>
         </div>
         <div class="card">
-          <h2>3. Strict Grid Labels &amp; Active Experiments</h2>
+          <h2>3. Grids &amp; Available Experiments</h2>
           <ul class="muted" style="padding-left:18px; margin-top:10px;">
-            <li><strong style="color:var(--fg);">Registered <span class="mono">grid_label</span>s:</strong> CMIP7 uses explicit standardized grid IDs (such as <span class="mono">g110</span>, <span class="mono">g126</span>, <span class="mono">g108</span>, <span class="mono">g124</span>).</li>
-            <li><strong style="color:var(--fg);">Assessment Fast Track (AFT):</strong> Active experiments include <span class="mono">historical</span>, <span class="mono">esm-hist</span>, <span class="mono">piControl</span>, <span class="mono">1pctCO2</span>, <span class="mono">abrupt-4xCO2</span>, <span class="mono">amip</span>, and ScenarioMIP pathways (<span class="mono">scen7-vl</span>, <span class="mono">scen7-m</span>, <span class="mono">scen7-h</span>).</li>
+            <li><strong style="color:var(--fg);">Standardized grids (<span class="mono">grid_label</span>):</strong> Codes like <span class="mono">g110</span> (atmosphere/land) or <span class="mono">g126</span> (ocean) identify shared grids. Leave set to <strong>Any</strong> unless you need a specific grid.</li>
+            <li><strong style="color:var(--fg);">Active experiments:</strong> Includes <span class="mono">historical</span>, <span class="mono">esm-hist</span> (emissions-driven), <span class="mono">piControl</span>, <span class="mono">amip</span>, and future scenarios (<span class="mono">scen7-vl</span> very low, <span class="mono">scen7-m</span> medium, <span class="mono">scen7-h</span> high emissions).</li>
           </ul>
         </div>
         <div class="card">
-          <h2>4. Choosing the Right Download Path</h2>
+          <h2>4. Which Download Option Should I Pick?</h2>
           <ul class="muted" style="padding-left:18px; margin-top:10px;">
-            <li><strong style="color:var(--fg);">Regional Subsets (&lt;20% globe):</strong> Use <span class="mono">intake-esgf</span> + <span class="mono">xarray.sel()</span> to pull only your lat/lon/time slice.</li>
-            <li><strong class="mono">CLI / Browser Cart:</strong> Use the Download Cart above (<span class="mono">.sh</span> / <span class="mono">.py</span>) or <span class="mono">scripts/cmip7_check_area.py</span> / <span class="mono">ESGpull</span> (<span class="mono">v0.10.0+</span>).</li>
-            <li><strong style="color:var(--fg);">Bulk Multi-Model Transfers:</strong> Use <strong style="color:var(--fg);">Globus</strong> via MetaGrid / ESGF Tier-1 nodes.</li>
+            <li><strong style="color:var(--fg);">I only want my selected box:</strong> Download <strong style="color:var(--fg);">Python Subset (.py) · Area Only ★</strong> (or copy Step 3's script) and run it in Python on your machine — running the script fetches the data and saves a cropped <span class="mono">.nc</span> file for your box.</li>
+            <li><strong style="color:var(--fg);">I want raw <span class="mono">.nc</span> files directly:</strong> Use <strong style="color:var(--fg);">Download Global .nc ↗</strong> or <strong style="color:var(--fg);">wget (.sh) · Full Global Files</strong>, then crop locally afterward with <span class="mono">cdo sellonlatbox,...</span>.</li>
+            <li><strong style="color:var(--fg);">Large multi-model downloads:</strong> Use <strong style="color:var(--fg);">Globus</strong> via <span class="mono">metagrid.esgf-west.org</span> or the <span class="mono">ESGpull</span> CLI (<span class="mono">v0.10.0+</span>).</li>
           </ul>
         </div>
       </div>

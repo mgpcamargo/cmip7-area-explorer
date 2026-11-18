@@ -315,15 +315,6 @@
       `<span class="pill ${b.ok ? "" : "disabled"}">${b.name}</span>`
     ).join("");
 
-    let advice = "";
-    if (areaPct < 20) {
-      advice = `Small regional box (${areaPct.toFixed(1)}% of globe) — Python subsetting avoids downloading full global datasets.`;
-    } else if (areaPct < 60) {
-      advice = `Large regional footprint (${areaPct.toFixed(1)}% of globe) — Python works for single variables; use wget/Globus + CDO for large ensembles.`;
-    } else {
-      advice = `Near-global footprint (${areaPct.toFixed(1)}% of globe) — wget, ESGpull, or Globus bulk transfer is fastest.`;
-    }
-    document.getElementById("diag-advice").textContent = advice;
     const twoPathTitle = document.getElementById("two-path-title");
     if (twoPathTitle) twoPathTitle.textContent = `Two ways to get this ${areaPct.toFixed(1)}% area:`;
   }
@@ -884,7 +875,7 @@ cat = intake_esgf.ESGFCatalog().search(
 )
 print(cat)
 
-# 2. Lazy-load matching datasets (streams via Virtual Zarr / HTTP)
+# 2. Open matching datasets before cropping
 datasets = cat.to_dataset_dict(progressbar=True)
 ds = next(iter(datasets.values()))
 
@@ -1104,7 +1095,7 @@ esgpull download
         const drawerBanner = `
           <div class="drawer-note">
             <strong style="color:var(--fg);">Official ESGF mirrors only store full-globe files (<span class="mono">_glb_</span>).</strong>
-            To get only your box (<span class="mono">${state.latMin}°..${state.latMax}°N, ${state.lonMin}°..${state.lonMax}°E</span>), use the Python script in Step 3 or crop after downloading.
+            To get only your box (<span class="mono">${state.latMin}°..${state.latMax}°N, ${state.lonMin}°..${state.lonMax}°E</span>), export and run the Python script in Step 3 on your machine, or crop these files after downloading.
           </div>
         `;
         const filesHtml = assets.map(([fname, a]) => {
