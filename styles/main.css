@@ -130,7 +130,13 @@ button.sm { padding: 4px 9px; font-size: 0.76rem; border-radius: 6px; }
 }
 
 @media (min-width: 1024px) {
-  .grid-main { grid-template-columns: 8fr 4fr; }
+  .grid-main { grid-template-columns: 5fr 3fr; align-items: stretch; }
+}
+
+.map-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
 .grid-2 {
@@ -336,22 +342,29 @@ tbody tr.files-row { cursor: default; background: var(--bg); }
   font-size: 0.78rem;
 }
 
+.two-path-banner {
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .two-path-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: 12px;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
   .two-path-grid { grid-template-columns: 1fr; }
 }
 
 .path-card {
-  background: var(--surface);
+  background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 8px 10px;
-  font-size: 0.76rem;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 0.8rem;
 }
 
 .code-box {

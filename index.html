@@ -34,7 +34,7 @@
       <div class="grid-main">
 
         <!-- Interactive World Atlas -->
-        <section class="card">
+        <section class="card map-card">
           <div class="map-toolbar">
             <div>
               <h2>1. Select Geographic Area</h2>
@@ -75,75 +75,74 @@
         </section>
 
         <!-- Area Bounds & Diagnostics -->
-        <aside class="card" style="display:flex; flex-direction:column; justify-content:space-between; gap:14px;">
-          <div style="display:flex; flex-direction:column; gap:14px;">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-              <h2>Area Bounds &amp; Check</h2>
-              <span id="region-label" class="pill">South America</span>
-            </div>
+        <aside class="card" style="display:flex; flex-direction:column; gap:14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h2>Area Bounds &amp; Check</h2>
+            <span id="region-label" class="pill">South America</span>
+          </div>
 
-            <div class="grid-2">
-              <div class="field">
-                <label>Lat Min (°N)</label>
-                <input id="input-lat-min" type="number" min="-90" max="90" step="0.5" value="-56" onchange="onManualCoordChange()" />
-              </div>
-              <div class="field">
-                <label>Lat Max (°N)</label>
-                <input id="input-lat-max" type="number" min="-90" max="90" step="0.5" value="13" onchange="onManualCoordChange()" />
-              </div>
-              <div class="field">
-                <label>Lon Min (°E)</label>
-                <input id="input-lon-min" type="number" min="-180" max="180" step="0.5" value="-82" onchange="onManualCoordChange()" />
-              </div>
-              <div class="field">
-                <label>Lon Max (°E)</label>
-                <input id="input-lon-max" type="number" min="-180" max="180" step="0.5" value="-34" onchange="onManualCoordChange()" />
-              </div>
+          <div class="grid-2">
+            <div class="field">
+              <label>Lat Min (°N)</label>
+              <input id="input-lat-min" type="number" min="-90" max="90" step="0.5" value="-56" onchange="onManualCoordChange()" />
             </div>
-
-            <div>
-              <span class="muted small" style="display:block; margin-bottom:5px;">CMIP Longitude Convention (Python/xarray)</span>
-              <div class="grid-2">
-                <button id="lon-mode-180" onclick="setLonMode('180')">-180° to 180°</button>
-                <button id="lon-mode-360" class="active" onclick="setLonMode('360')">0° to 360° (CMIP)</button>
-              </div>
+            <div class="field">
+              <label>Lat Max (°N)</label>
+              <input id="input-lat-max" type="number" min="-90" max="90" step="0.5" value="13" onchange="onManualCoordChange()" />
             </div>
-
-            <div class="diag-box">
-              <div class="muted small" style="text-transform:uppercase; letter-spacing:0.04em; font-weight:600;">What Can Be Downloaded Here</div>
-              <div class="grid-2">
-                <div class="stat-tile">
-                  <div class="muted small">Global Area %</div>
-                  <div id="diag-area-pct" class="stat-val">—</div>
-                </div>
-                <div class="stat-tile">
-                  <div class="muted small">Surface Coverage</div>
-                  <div id="diag-surface" class="stat-val">—</div>
-                </div>
-              </div>
-              <div class="small">
-                <span class="muted">Countries in box: </span>
-                <span id="diag-countries">—</span>
-              </div>
-              <div id="diag-realms" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
+            <div class="field">
+              <label>Lon Min (°E)</label>
+              <input id="input-lon-min" type="number" min="-180" max="180" step="0.5" value="-82" onchange="onManualCoordChange()" />
+            </div>
+            <div class="field">
+              <label>Lon Max (°E)</label>
+              <input id="input-lon-max" type="number" min="-180" max="180" step="0.5" value="-34" onchange="onManualCoordChange()" />
             </div>
           </div>
 
-          <div class="diag-box" style="gap:8px;">
-            <div id="two-path-title" class="small" style="font-weight:600; color:var(--fg);">Two ways to get this area:</div>
-            <div class="two-path-grid">
-              <div class="path-card">
-                <div style="font-weight:600; color:var(--fg);">A. Area-only output (Recommended)</div>
-                <div class="muted small" style="margin-top:3px;">Export and run the Step 3 Python script on your computer — running that script saves a cropped <span class="mono">.nc</span> file (this web page only generates the script).</div>
+          <div>
+            <span class="muted small" style="display:block; margin-bottom:5px;">CMIP Longitude Convention (Python/xarray)</span>
+            <div class="grid-2">
+              <button id="lon-mode-180" onclick="setLonMode('180')">-180° to 180°</button>
+              <button id="lon-mode-360" class="active" onclick="setLonMode('360')">0° to 360° (CMIP)</button>
+            </div>
+          </div>
+
+          <div class="diag-box" style="flex:1; justify-content:space-between;">
+            <div class="muted small" style="text-transform:uppercase; letter-spacing:0.04em; font-weight:600;">What Can Be Downloaded Here</div>
+            <div class="grid-2">
+              <div class="stat-tile">
+                <div class="muted small">Global Area %</div>
+                <div id="diag-area-pct" class="stat-val">—</div>
               </div>
-              <div class="path-card">
-                <div style="font-weight:600; color:var(--fg);">B. Direct .nc links / wget</div>
-                <div class="muted small" style="margin-top:3px;">Official mirrors host <strong>full-globe</strong> files — crop them locally with <span class="mono">cdo</span> afterward.</div>
+              <div class="stat-tile">
+                <div class="muted small">Surface Coverage</div>
+                <div id="diag-surface" class="stat-val">—</div>
               </div>
             </div>
+            <div class="small">
+              <span class="muted">Countries in box: </span>
+              <span id="diag-countries">—</span>
+            </div>
+            <div id="diag-realms" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
           </div>
         </aside>
       </div>
+
+      <!-- Full-width Two-Path Guidance Strip -->
+      <section class="card two-path-banner">
+        <div id="two-path-title" class="small" style="font-weight:600; color:var(--fg);">Two ways to get this area:</div>
+        <div class="two-path-grid">
+          <div class="path-card">
+            <div style="font-weight:600; color:var(--fg);">A. Area-only output (Recommended)</div>
+            <div class="muted small" style="margin-top:3px;">Export and run the Step 3 Python script on your computer — running that script saves a cropped <span class="mono">.nc</span> file (this web page only generates the script).</div>
+          </div>
+          <div class="path-card">
+            <div style="font-weight:600; color:var(--fg);">B. Direct .nc links / wget</div>
+            <div class="muted small" style="margin-top:3px;">Official mirrors host <strong>full-globe</strong> files — crop them locally with <span class="mono">cdo</span> afterward.</div>
+          </div>
+        </div>
+      </section>
 
       <!-- Variables & Live ESGF-NG Dataset Browser -->
       <section class="card">
