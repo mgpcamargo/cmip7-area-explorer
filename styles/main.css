@@ -354,3 +354,54 @@ tbody tr.files-row { cursor: default; background: var(--bg); }
 .hidden { display: none !important; }
 .ok-text { color: var(--success); font-weight: 600; }
 .warn-text { color: var(--warn); font-weight: 600; }
+
+.about-footer {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 11px 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.78rem;
+  color: var(--fg-muted);
+  opacity: 0.92;
+}
+
+.about-title {
+  font-weight: 600;
+  color: var(--fg);
+  opacity: 0.85;
+  margin-right: 6px;
+}
+
+.about-links {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.about-icon-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fg-muted);
+  text-decoration: none;
+  line-height: 1;
+  transition: color 0.15s, transform 0.15s;
+}
+
+.about-icon-link:hover {
+  color: var(--primary);
+  text-decoration: none;
+  transform: translateY(-1px);
+}
+
+.about-icon {
+  width: 1.05em;
+  height: 1.05em;
+  display: block;
+  flex-shrink: 0;
+}
