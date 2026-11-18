@@ -113,9 +113,8 @@
     }
   }
 
-  function syncHash() {
-    if (typeof history === "undefined" || typeof location === "undefined") return;
-    if (location.protocol !== "http:" && location.protocol !== "https:") return;
+  function buildShareUrl() {
+    if (typeof location === "undefined") return "";
     const exp = document.getElementById("select-experiment").value;
     const grid = document.getElementById("select-grid").value;
     const params = new URLSearchParams({
@@ -126,7 +125,8 @@
       proj: state.projection,
       region: state.regionName
     });
-    history.replaceState(null, "", "#" + params.toString());
+    const base = location.href.split("#")[0];
+    return `${base}#${params.toString()}`;
   }
 
   // --- Projection Math ---
@@ -743,7 +743,6 @@
     document.getElementById("proj-ne").classList.toggle("active", proj === "naturalEarth");
     document.getElementById("proj-eq").classList.toggle("active", proj === "equirect");
     drawMap();
-    syncHash();
   }
 
   function setToolMode(mode) {
@@ -829,14 +828,12 @@
       state.selectedVar = found;
       renderVariablesTable();
       updateGeneratedCode();
-      syncHash();
       maybeAutoQuery();
     }
   }
 
   function onFilterChanged() {
     updateGeneratedCode();
-    syncHash();
     maybeAutoQuery();
   }
 
@@ -1434,8 +1431,7 @@ esgpull download
   }
 
   function copyShareUrl() {
-    syncHash();
-    const url = typeof location !== "undefined" ? location.href : "";
+    const url = buildShareUrl();
     copyWithFeedback(url, document.getElementById("share-btn"), "Share Link", "Link Copied!");
   }
 
@@ -1444,7 +1440,6 @@ esgpull download
     analyzeSelectedArea();
     renderVariablesTable();
     updateGeneratedCode();
-    syncHash();
   }
 
   Object.assign(window, {
