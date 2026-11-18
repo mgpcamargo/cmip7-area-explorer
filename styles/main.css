@@ -327,6 +327,33 @@ tbody tr.files-row { cursor: default; background: var(--bg); }
   border: 1px solid var(--border);
 }
 
+.drawer-note {
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--fg-muted);
+  font-size: 0.78rem;
+}
+
+.two-path-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+@media (max-width: 600px) {
+  .two-path-grid { grid-template-columns: 1fr; }
+}
+
+.path-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 0.76rem;
+}
+
 .code-box {
   position: relative;
   background: var(--bg);

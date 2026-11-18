@@ -131,8 +131,18 @@
             </div>
           </div>
 
-          <div class="muted small" style="border-top:1px solid var(--border); padding-top:10px;">
-            ESGF-NG archives store global/regional NetCDF files; area subsetting runs via lazy Virtual Zarr / HTTP byte-range streaming (<span class="mono">intake-esgf</span> + <span class="mono">xarray</span>).
+          <div class="diag-box" style="gap:8px;">
+            <div id="two-path-title" class="small" style="font-weight:600; color:var(--fg);">Two ways to get this area:</div>
+            <div class="two-path-grid">
+              <div class="path-card">
+                <div style="font-weight:600; color:var(--fg);">A. Area-only output (Recommended)</div>
+                <div class="muted small" style="margin-top:3px;">Run the Step 3 Python script. It slices your box before saving <span class="mono">.nc</span>.</div>
+              </div>
+              <div class="path-card">
+                <div style="font-weight:600; color:var(--fg);">B. Direct .nc links / wget</div>
+                <div class="muted small" style="margin-top:3px;">Official mirrors host <strong>full-globe</strong> files — crop them locally with <span class="mono">cdo</span> afterward.</div>
+              </div>
+            </div>
           </div>
         </aside>
       </div>
@@ -253,8 +263,8 @@
             <span id="cart-summary" class="muted">0 datasets selected</span>
           </div>
           <div class="btn-group">
-            <button class="sm active" onclick="downloadWgetScript()">Download wget Script (.sh)</button>
-            <button class="sm" onclick="downloadPythonScript()">Download Python Subset (.py)</button>
+            <button class="sm active" onclick="downloadPythonScript()">Python Subset (.py) · Area Only ★</button>
+            <button class="sm" onclick="downloadWgetScript()">wget (.sh) · Full Global Files</button>
             <button class="sm" onclick="clearCart()">Clear Cart</button>
           </div>
         </div>
@@ -268,9 +278,9 @@
             <p class="muted small">Selected: <strong id="summary-selection" style="color:var(--fg);">tas_tavg-h2m-hxy-u · historical</strong></p>
           </div>
           <div class="btn-group">
-            <button id="code-tab-python" class="active" onclick="switchCodeTab('python')">Python (intake-esgf + xarray)</button>
-            <button id="code-tab-stac" onclick="switchCodeTab('stac')">ESGF-NG STAC API (curl)</button>
-            <button id="code-tab-cli" onclick="switchCodeTab('cli')">Repo CLI / ESGpull / Globus</button>
+            <button id="code-tab-python" class="active" onclick="switchCodeTab('python')">Crop Area via Python (Recommended)</button>
+            <button id="code-tab-stac" onclick="switchCodeTab('stac')">STAC API (Metadata Query)</button>
+            <button id="code-tab-cli" onclick="switchCodeTab('cli')">Bulk Global + CDO Crop</button>
           </div>
         </div>
 
