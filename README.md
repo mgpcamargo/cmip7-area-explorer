@@ -1,6 +1,11 @@
+<p align="center">
+  <img src="assets/brand/cmip7-area-explorer_lockup-horizontal_dark.png" alt="CMIP7 Area Explorer" width="680" />
+</p>
+
 # CMIP7 Area Explorer & ESGF-NG Web Portal
 
-Live Web App: **https://mgpcamargo.github.io/cmip7-area-explorer/**
+- **Live Web App**: **https://mgpcamargo.github.io/cmip7-area-explorer/**
+- **4-Page Visual User Guide (PDF)**: **[docs/CMIP7_Area_Explorer_Visual_Guide.pdf](docs/CMIP7_Area_Explorer_Visual_Guide.pdf)**
 
 Open-source interactive cartographic web application and zero-dependency Python CLI helper to delimit a geographic bounding box, diagnose eligible **CMIP7** (`MIP-DRS7`) realms and branded variables, query live **ESGF-NG STAC** catalogs, inspect NetCDF assets, and export reproducible regional subsetting scripts.
 
@@ -8,13 +13,11 @@ Open-source interactive cartographic web application and zero-dependency Python 
 
 ## Key Capabilities
 
-- **High-Detail Cartographic Base & Multi-Layer Switcher**:
+- **High-Detail Cartographic Base & Terrain Switcher**:
   - **Natural Earth 1:50m Vector Atlas** (`data/world-50m.js`, public domain) with 241 countries/territories, lakes, and major world rivers.
-  - **Layers Switcher** (below zoom controls) with keyless, CORS-enabled scientific basemaps projected seamlessly in both **Natural Earth** and **Equirectangular** views:
+  - **Layers Switcher** (beneath zoom controls) projected seamlessly in both **Natural Earth** and **Equirectangular** views:
     - **Atlas** (`1:50m` vector)
-    - **Satellite** (ESA Copernicus Sentinel-2 Cloudless via EOX, CC-BY-4.0)
     - **Terrain** (EOX / SRTM / GEBCO shaded topographic relief & ocean trenches, CC-BY-4.0)
-    - **Bathymetry** (NASA Blue Marble + ocean floor relief)
   - Toggleable overlays for **Borders & Labels**, **Major Rivers**, and **Lat/Lon Graticule**.
 - **Area-Aware CMIP7 Eligibility Diagnostics**:
   - Computes spherical global area fraction, detects **Land / Ocean / Polar** surface masks, and lists intersecting territories.
@@ -22,8 +25,8 @@ Open-source interactive cartographic web application and zero-dependency Python 
 - **Live ESGF-NG STAC Dataset Explorer & Download Cart**:
   - Queries `https://discovery.east.esgf.io/search` (with automatic fallback to `https://api.stac.esgf.ceda.ac.uk/search`) for live CMIP7 holdings.
   - Filter by model (`source_id`), frequency, grid label (`g110`, `g126`, etc.), inspect individual `.nc` assets, and export `subset_cmip7.py` (`intake-esgf` + `xarray` area crop) or `download_cmip7.sh` (`wget` + `cdo sellonlatbox`).
-- **Shareable URL State & Light/Dark Modes**:
-  - Clean institutional light-first interface with persistent Dark Mode toggle and one-click `Share Link` state encoding (`#bbox=...`).
+- **Built-In CMIP7 Guide, FAQ & Shareable State**:
+  - Dedicated **CMIP7 Guide** and **8-question FAQ** tabs, downloadable **4-Page Visual User Guide PDF**, persistent Light/Dark themes, and one-click `Share Link` state encoding (`#bbox=...`).
 
 ## Local Usage
 
@@ -53,7 +56,7 @@ python3 scripts/cmip7_check_area.py \
 - **Data & Map Credits**:
   - CMIP7 model datasets: WCRP CMIP7 participating modeling groups (**CC-BY-4.0**).
   - Vector boundaries, lakes & rivers: Natural Earth 1:50m (**Public Domain**).
-  - Satellite, terrain & bathymetry tiles: Copernicus Sentinel-2 Cloudless / EOX IT Services GmbH (**CC-BY-4.0**) and NASA Earth Observatory Blue Marble.
+  - Terrain & bathymetry tiles: EOX IT Services GmbH / SRTM / GEBCO (**CC-BY-4.0**).
 
 ## CMIP7 References
 

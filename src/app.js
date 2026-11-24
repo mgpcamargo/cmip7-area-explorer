@@ -33,20 +33,10 @@
   const WORLD = window.WORLD_50M || window.WORLD_110M || { countries: [], lakes: [], rivers: [] };
 
   const RASTER_LAYERS = {
-    satellite: {
-      id: "s2cloudless-2024",
-      label: "Satellite",
-      attrib: "Imagery: Copernicus Sentinel-2 Cloudless (EOX) · CC-BY-4.0"
-    },
     terrain: {
       id: "terrain-light",
       label: "Terrain",
       attrib: "Relief & Bathymetry: EOX / SRTM / GEBCO · CC-BY-4.0"
-    },
-    bluemarble: {
-      id: "bluemarble",
-      label: "Blue Marble",
-      attrib: "Imagery: NASA Blue Marble / EOX · Public Domain"
     }
   };
 
@@ -612,39 +602,34 @@
     const isDarkImagery = state.basemap === "satellite" || state.basemap === "bluemarble";
     const isLightTerrain = state.basemap === "terrain";
 
-    const outerBg = isLight ? "#dce5ef" : "#060b16";
-    const oceanTop = isLight ? "#d4e8f7" : "#0a1c34";
-    const oceanEq = isLight ? "#e7f3fc" : "#102a4c";
+    const outerBg = isLight ? "#dce5ef" : "#030b33";
+    const oceanTop = isLight ? "#d4e8f7" : "#071a55";
+    const oceanEq = isLight ? "#e7f3fc" : "#0f3a86";
 
-    let gridColor = isLight ? "rgba(15, 23, 42, 0.09)" : "rgba(148, 163, 184, 0.14)";
-    let specialLineColor = isLight ? "rgba(2, 132, 199, 0.28)" : "rgba(56, 189, 248, 0.24)";
-    if (isDarkImagery) {
-      gridColor = "rgba(255, 255, 255, 0.16)";
-      specialLineColor = "rgba(125, 211, 252, 0.36)";
-    } else if (isLightTerrain) {
+    let gridColor = isLight ? "rgba(10, 36, 102, 0.09)" : "rgba(92, 230, 240, 0.14)";
+    let specialLineColor = isLight ? "rgba(27, 156, 192, 0.30)" : "rgba(51, 214, 238, 0.28)";
+    if (isLightTerrain) {
       gridColor = "rgba(15, 23, 42, 0.13)";
-      specialLineColor = "rgba(3, 105, 161, 0.32)";
+      specialLineColor = "rgba(17, 127, 166, 0.34)";
     }
 
-    const landFill = isLight ? "#f0ede4" : "#223244";
+    const landFill = isLight ? "#f0ede4" : "#162b52";
     const landHoverFill = rasterCfg
-      ? (isDarkImagery ? "rgba(255, 255, 255, 0.14)" : "rgba(14, 116, 144, 0.14)")
-      : (isLight ? "#e1dccf" : "#30465e");
+      ? "rgba(27, 156, 192, 0.16)"
+      : (isLight ? "#e1dccf" : "#213f73");
     const borderColor = rasterCfg
-      ? (isDarkImagery ? "rgba(248, 250, 252, 0.48)" : "rgba(30, 41, 59, 0.46)")
-      : (isLight ? "#94a3b8" : "#475569");
-    const coastColor = isDarkImagery ? "rgba(226, 232, 240, 0.55)" : "#64748b";
-    const lakeFill = isLight ? "#cbe4f8" : "#0d2442";
-    const riverColor = isDarkImagery
-      ? "rgba(103, 232, 249, 0.80)"
-      : (isLightTerrain ? "rgba(2, 132, 199, 0.78)" : (isLight ? "rgba(2, 132, 199, 0.68)" : "rgba(56, 189, 248, 0.62)"));
+      ? "rgba(30, 41, 59, 0.46)"
+      : (isLight ? "#94a3b8" : "rgba(92, 230, 240, 0.34)");
+    const coastColor = isLight ? "#64748b" : "#2aa7c9";
+    const lakeFill = isLight ? "#cbe4f8" : "#071a55";
+    const riverColor = isLightTerrain
+      ? "rgba(17, 127, 166, 0.78)"
+      : (isLight ? "rgba(17, 127, 166, 0.70)" : "rgba(51, 214, 238, 0.72)");
 
-    const boxFill = isDarkImagery
-      ? "rgba(56, 189, 248, 0.18)"
-      : (isLight ? "rgba(11, 79, 138, 0.16)" : "rgba(56, 189, 248, 0.20)");
-    const boxStroke = isDarkImagery ? "#38bdf8" : (isLight ? "#0b4f8a" : "#38bdf8");
-    const labelColor = isDarkImagery ? "#f8fafc" : (isLight || isLightTerrain ? "#1e293b" : "#cbd5e1");
-    const labelHalo = isDarkImagery ? "rgba(15, 23, 42, 0.82)" : (isLight || isLightTerrain ? "rgba(255, 255, 255, 0.82)" : "rgba(15, 23, 42, 0.78)");
+    const boxFill = isLight ? "rgba(20, 69, 154, 0.15)" : "rgba(255, 194, 26, 0.18)";
+    const boxStroke = isLight ? "#0a2466" : "#ffc21a";
+    const labelColor = (isLight || isLightTerrain) ? "#1e293b" : "#e2e8f0";
+    const labelHalo = (isLight || isLightTerrain) ? "rgba(255, 255, 255, 0.84)" : "rgba(3, 11, 51, 0.84)";
 
     ctx.fillStyle = outerBg;
     ctx.fillRect(0, 0, BASE_W, BASE_H);
@@ -1657,16 +1642,23 @@ esgpull download
   }
 
   function switchMainTab(tab) {
-    const isExp = tab === "explorer";
-    document.getElementById("panel-explorer").classList.toggle("hidden", !isExp);
-    document.getElementById("panel-guidelines").classList.toggle("hidden", isExp);
-    document.getElementById("tab-btn-explorer").classList.toggle("active", isExp);
-    document.getElementById("tab-btn-guidelines").classList.toggle("active", !isExp);
-    if (isExp) drawMap();
+    ["explorer", "guidelines", "faq"].forEach(k => {
+      const panel = document.getElementById("panel-" + k);
+      const btn = document.getElementById("tab-btn-" + k);
+      if (panel) panel.classList.toggle("hidden", k !== tab);
+      if (btn) btn.classList.toggle("active", k === tab);
+    });
+    if (tab === "explorer") drawMap();
+  }
+
+  function toggleAllFaq(openState) {
+    document.querySelectorAll("#panel-faq details.faq-item").forEach(d => {
+      d.open = !!openState;
+    });
   }
 
   function syncLayersUi() {
-    ["atlas", "satellite", "terrain", "bluemarble"].forEach(k => {
+    ["atlas", "terrain"].forEach(k => {
       const btn = document.getElementById("layer-opt-" + k);
       if (btn) btn.classList.toggle("active", state.basemap === k);
     });
@@ -1796,6 +1788,7 @@ esgpull download
     downloadPythonScript,
     switchCodeTab,
     switchMainTab,
+    toggleAllFaq,
     toggleTheme,
     toggleLayersMenu,
     setBasemap,

@@ -1,42 +1,47 @@
-/* Institutional Scientific UI (WCRP / Copernicus CDS inspired) */
-:root {
-  /* Dark Mode (Cartographic Observatory) */
-  --bg: #0a101d;
-  --surface: #11192b;
-  --surface-alt: #18233a;
-  --surface-subtle: #0d1524;
-  --border: #253450;
-  --border-strong: #33476b;
-  --fg: #edf2f7;
-  --fg-muted: #94a3b8;
-  --primary: #38bdf8;
-  --primary-fg: #062138;
-  --accent: #64d2cd;
-  --success: #34d399;
-  --warn: #f59e0b;
-  --masthead-bg: #05091a;
-  --masthead-border: #1e2d4d;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.28);
-}
-
-html.light {
+/* Institutional Scientific UI — CMIP7 Area Explorer Brand Identity */
+:root,
+html.light,
+html.light body {
   /* Light Institutional Mode (Default) */
-  --bg: #f4f6f9;
+  color-scheme: light;
+  --bg: #f3f6fa;
   --surface: #ffffff;
-  --surface-alt: #eef2f7;
-  --surface-subtle: #f8fafc;
-  --border: #d5dde8;
-  --border-strong: #b8c4d4;
-  --fg: #0f172a;
+  --surface-alt: #eaf0f8;
+  --surface-subtle: #f8fafd;
+  --border: #d2dce9;
+  --border-strong: #b1c2d8;
+  --fg: #0a1936;
   --fg-muted: #475569;
-  --primary: #0b4f8a;
+  --primary: #0a2466;
   --primary-fg: #ffffff;
-  --accent: #0f766e;
+  --accent: #117fa6;
   --success: #047857;
   --warn: #b45309;
-  --masthead-bg: #000546;
-  --masthead-border: #64d2cd;
-  --shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --masthead-bg: #030b33;
+  --masthead-border: #33d6ee;
+  --shadow: 0 1px 2px rgba(10, 25, 54, 0.05);
+}
+
+html:not(.light),
+html:not(.light) body {
+  /* Dark Mode (Deep Space Navy & Cyan/Gold Reticle) */
+  color-scheme: dark;
+  --bg: #050d2b;
+  --surface: #091642;
+  --surface-alt: #10235c;
+  --surface-subtle: #071136;
+  --border: #1b3578;
+  --border-strong: #2950a8;
+  --fg: #f1f5f9;
+  --fg-muted: #9eb3d4;
+  --primary: #33d6ee;
+  --primary-fg: #030b33;
+  --accent: #ffc21a;
+  --success: #34d399;
+  --warn: #ffc21a;
+  --masthead-bg: #030b33;
+  --masthead-border: #1fa9c9;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.34);
 }
 
 * { box-sizing: border-box; }
@@ -79,13 +84,44 @@ a:hover { text-decoration: underline; }
 .brand-lockup {
   display: flex;
   align-items: center;
-  gap: 13px;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
-.brand-emblem {
-  width: 38px;
-  height: 38px;
-  flex-shrink: 0;
+.brand-logo-link {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.brand-lockup-img {
+  height: 54px;
+  width: auto;
+  display: block;
+}
+
+.brand-copy {
+  border-left: 1px solid rgba(51, 214, 238, 0.28);
+  padding-left: 15px;
+}
+
+@media (max-width: 760px) {
+  .brand-copy {
+    border-left: none;
+    padding-left: 0;
+  }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .title-row {
@@ -95,35 +131,27 @@ a:hover { text-decoration: underline; }
   flex-wrap: wrap;
 }
 
-.site-masthead h1 {
-  margin: 0;
-  font-size: 1.24rem;
-  font-weight: 700;
-  letter-spacing: -0.015em;
-  color: #ffffff;
-}
-
 .masthead-tag {
   font-size: 0.71rem;
   font-weight: 600;
   padding: 2px 8px;
   border-radius: 4px;
-  background: rgba(100, 210, 205, 0.14);
-  color: #64d2cd;
-  border: 1px solid rgba(100, 210, 205, 0.4);
+  background: rgba(51, 214, 238, 0.14);
+  color: #5ce6f0;
+  border: 1px solid rgba(51, 214, 238, 0.45);
 }
 
 .masthead-subtag {
   font-size: 0.72rem;
-  font-weight: 500;
-  color: #cbd5e1;
+  font-weight: 600;
+  color: #ffc21a;
   padding-left: 8px;
   border-left: 1px solid rgba(203, 213, 225, 0.28);
 }
 
 .masthead-subtitle {
-  margin: 2px 0 0;
-  font-size: 0.81rem;
+  margin: 3px 0 0;
+  font-size: 0.8rem;
   color: #cbd5e1;
 }
 
@@ -132,27 +160,6 @@ a:hover { text-decoration: underline; }
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-}
-
-.masthead-tabs {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.22);
-}
-
-.masthead-tabs button {
-  color: #e2e8f0;
-  background: transparent;
-}
-
-.masthead-tabs button:hover {
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.masthead-tabs button.active {
-  background: #ffffff;
-  color: #000546;
-  font-weight: 600;
 }
 
 .masthead-btn {
@@ -267,7 +274,10 @@ input[type="number"]:focus {
 }
 
 button {
+  -webkit-appearance: none;
+  appearance: none;
   cursor: pointer;
+  color: var(--fg);
   background: var(--surface-alt);
   font-weight: 500;
   transition: background 0.12s, border-color 0.12s, color 0.12s;
@@ -276,6 +286,7 @@ button {
 button:hover {
   border-color: var(--border-strong);
   background: var(--surface-subtle);
+  color: var(--fg);
 }
 
 button.active,
@@ -287,6 +298,8 @@ button.primary-btn {
 }
 
 button.primary-btn:hover {
+  background: var(--primary);
+  color: var(--primary-fg);
   opacity: 0.93;
 }
 
@@ -311,6 +324,7 @@ button.sm {
   border-right: 1px solid var(--border);
   border-radius: 0;
   background: transparent;
+  color: var(--fg);
   padding: 5px 10px;
   font-size: 0.77rem;
 }
@@ -985,4 +999,134 @@ tbody tr.files-row {
   height: 1.08em;
   display: block;
   flex-shrink: 0;
+}
+
+/* ── High-Specificity Masthead Tabs & Link Buttons ─────────────── */
+header.site-masthead .seg-group.masthead-tabs {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(51, 214, 238, 0.35);
+}
+
+header.site-masthead .seg-group.masthead-tabs button,
+header.site-masthead .seg-group.masthead-tabs button:not(.active) {
+  color: #e2e8f0;
+  background: transparent;
+  font-weight: 500;
+  border-right-color: rgba(255, 255, 255, 0.18);
+}
+
+header.site-masthead .seg-group.masthead-tabs button:hover {
+  color: #ffffff;
+  background: rgba(51, 214, 238, 0.16);
+}
+
+header.site-masthead .seg-group.masthead-tabs button.active {
+  background: #33d6ee;
+  color: #030b33;
+  font-weight: 700;
+}
+
+.masthead-link-btn {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  border-color: rgba(255, 194, 26, 0.48);
+  color: #ffe9a8;
+}
+
+.masthead-link-btn:hover {
+  text-decoration: none;
+  background: rgba(255, 194, 26, 0.16);
+  border-color: #ffc21a;
+  color: #ffffff;
+}
+
+.button-like {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 4px;
+  border: 1px solid var(--primary);
+  background: var(--surface-alt);
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.button-like:hover {
+  text-decoration: none;
+  background: var(--primary);
+  color: var(--primary-fg);
+}
+
+/* ── FAQ Accordion Section ─────────────────────────────────────── */
+.faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.faq-item {
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--surface-subtle);
+  overflow: hidden;
+  transition: border-color 0.14s;
+}
+
+.faq-item[open] {
+  border-color: var(--border-strong);
+  background: var(--surface);
+}
+
+.faq-item summary {
+  cursor: pointer;
+  padding: 11px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--fg);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  list-style: none;
+  user-select: none;
+}
+
+.faq-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq-item summary::after {
+  content: "+";
+  margin-left: auto;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--fg-muted);
+}
+
+.faq-item[open] summary::after {
+  content: "−";
+  color: var(--primary);
+}
+
+.faq-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.69rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: var(--surface-alt);
+  color: var(--primary);
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.faq-body {
+  padding: 0 14px 13px 44px;
+  line-height: 1.6;
+  font-size: 0.82rem;
 }

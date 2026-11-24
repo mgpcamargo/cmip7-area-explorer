@@ -18,11 +18,13 @@
   <meta name="twitter:description" content="Regional CMIP7 catalog discovery, area diagnostics &amp; subset script builder." />
   <meta name="twitter:image" content="https://mgpcamargo.github.io/cmip7-area-explorer/assets/og-preview.png" />
 
-  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+  <link rel="icon" href="favicon.ico" sizes="any" />
+  <link rel="icon" type="image/svg+xml" href="assets/brand/cmip7-area-explorer_icon_favicon.svg" />
+  <link rel="apple-touch-icon" href="assets/brand/cmip7-area-explorer_icon_app.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles/main.css" />
+  <link rel="stylesheet" href="styles/main.css?v=3" />
 </head>
 <body>
 
@@ -30,25 +32,17 @@
   <header class="site-masthead">
     <div class="masthead-inner">
       <div class="brand-lockup">
-        <svg class="brand-emblem" viewBox="0 0 36 36" fill="none" aria-hidden="true">
-          <rect width="36" height="36" rx="6" fill="#0b155e" stroke="#64d2cd" stroke-opacity="0.45" />
-          <circle cx="18" cy="18" r="12" stroke="#64d2cd" stroke-width="1.3" stroke-opacity="0.78" />
-          <ellipse cx="18" cy="18" rx="6.2" ry="12" stroke="#64d2cd" stroke-width="1" stroke-opacity="0.48" />
-          <line x1="6" y1="18" x2="30" y2="18" stroke="#64d2cd" stroke-width="1" stroke-opacity="0.48" />
-          <rect x="13" y="12.5" width="11.5" height="10.5" fill="#f2b30d" fill-opacity="0.22" stroke="#f2b30d" stroke-width="1.75" />
-          <rect x="11.7" y="11.2" width="2.6" height="2.6" fill="#ffffff" stroke="#f2b30d" stroke-width="1" />
-          <rect x="23.2" y="11.2" width="2.6" height="2.6" fill="#ffffff" stroke="#f2b30d" stroke-width="1" />
-          <rect x="11.7" y="21.7" width="2.6" height="2.6" fill="#ffffff" stroke="#f2b30d" stroke-width="1" />
-          <rect x="23.2" y="21.7" width="2.6" height="2.6" fill="#ffffff" stroke="#f2b30d" stroke-width="1" />
-        </svg>
-        <div>
+        <a href="./" class="brand-logo-link" aria-label="CMIP7 Area Explorer Home">
+          <img class="brand-lockup-img" src="assets/brand/masthead-lockup-dark.svg" alt="CMIP7 Area Explorer" />
+        </a>
+        <div class="brand-copy">
           <div class="title-row">
-            <h1>CMIP7 Area Explorer</h1>
+            <h1 class="sr-only">CMIP7 Area Explorer</h1>
             <span class="masthead-tag mono">ESGF-NG · MIP-DRS7</span>
             <span class="masthead-subtag">Community Tool for WCRP CMIP7</span>
           </div>
           <p class="masthead-subtitle">
-            Delimit any geographic region, query live CMIP7 STAC datasets, inspect NetCDF holdings, and export area-cropping scripts.
+            Regional catalog discovery, variable eligibility &amp; subset script builder.
           </p>
         </div>
       </div>
@@ -57,7 +51,9 @@
         <div class="seg-group masthead-tabs">
           <button id="tab-btn-explorer" class="active" onclick="switchMainTab('explorer')">Area Explorer</button>
           <button id="tab-btn-guidelines" onclick="switchMainTab('guidelines')">CMIP7 Guide</button>
+          <button id="tab-btn-faq" onclick="switchMainTab('faq')">FAQ</button>
         </div>
+        <a class="masthead-btn masthead-link-btn" href="docs/CMIP7_Area_Explorer_Visual_Guide.pdf" target="_blank" rel="noopener noreferrer" title="Open 4-page Visual User Guide PDF">Visual Guide (PDF)</a>
         <button id="share-btn" class="masthead-btn" onclick="copyShareUrl()" title="Copy shareable link for this region &amp; variable">Share Link</button>
         <button id="theme-toggle-btn" class="masthead-btn" onclick="toggleTheme()" title="Switch Light / Dark mode">Dark Mode</button>
       </nav>
@@ -100,7 +96,7 @@
               <button onclick="zoomStep(-1)" title="Zoom out" aria-label="Zoom out">−</button>
               <button onclick="resetView()" title="Reset zoom &amp; pan" aria-label="Reset zoom and pan">⟲</button>
               <div class="map-ctrl-sep"></div>
-              <button id="layers-toggle-btn" class="layers-btn" onclick="toggleLayersMenu(event)" title="Map layers (Satellite, Terrain, Bathymetry)" aria-label="Map layers" aria-expanded="false">
+              <button id="layers-toggle-btn" class="layers-btn" onclick="toggleLayersMenu(event)" title="Map layers (Atlas &amp; Terrain)" aria-label="Map layers" aria-expanded="false">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
                   <polyline points="2 12 12 17 22 12"></polyline>
@@ -117,17 +113,9 @@
                   <span class="layer-swatch swatch-atlas" aria-hidden="true"></span>
                   <span class="layer-name">Atlas</span>
                 </button>
-                <button id="layer-opt-satellite" class="layer-option" onclick="setBasemap('satellite')">
-                  <span class="layer-swatch swatch-satellite" aria-hidden="true"></span>
-                  <span class="layer-name">Satellite</span>
-                </button>
                 <button id="layer-opt-terrain" class="layer-option" onclick="setBasemap('terrain')">
                   <span class="layer-swatch swatch-terrain" aria-hidden="true"></span>
                   <span class="layer-name">Terrain</span>
-                </button>
-                <button id="layer-opt-bluemarble" class="layer-option" onclick="setBasemap('bluemarble')">
-                  <span class="layer-swatch swatch-bluemarble" aria-hidden="true"></span>
-                  <span class="layer-name">Bathymetry</span>
                 </button>
               </div>
               <div class="layers-divider"></div>
@@ -438,6 +426,84 @@
       </div>
     </div>
 
+    <!-- MAIN TAB 3: FAQ -->
+    <div id="panel-faq" class="stack-lg hidden">
+      <section class="card">
+        <div class="map-toolbar" style="margin-bottom:14px;">
+          <div>
+            <div class="section-heading">
+              <span class="step-num mono">FAQ</span>
+              <h2>Frequently Asked Questions</h2>
+            </div>
+            <p class="muted small section-desc">Practical answers on CMIP7 branded variables, ESGF-NG STAC discovery, regional cropping, and licensing.</p>
+          </div>
+          <div class="btn-group">
+            <a class="sm button-like" href="docs/CMIP7_Area_Explorer_Visual_Guide.pdf" target="_blank" rel="noopener noreferrer">Download 4-Page Visual Guide (PDF) ↗</a>
+            <button class="sm" onclick="toggleAllFaq(true)">Expand All</button>
+            <button class="sm" onclick="toggleAllFaq(false)">Collapse All</button>
+          </div>
+        </div>
+
+        <div class="faq-list">
+          <details class="faq-item" open>
+            <summary><span class="faq-num mono">01</span> Does this website crop and download NetCDF files directly inside my browser?</summary>
+            <div class="faq-body muted">
+              Official ESGF-NG mirrors distribute full-globe (<span class="mono">_glb_</span>) NetCDF4 files that often span hundreds of megabytes to several gigabytes per simulation. Rather than pulling multi-gigabyte arrays into browser memory, <strong>CMIP7 Area Explorer</strong> queries live ESGF-NG STAC catalogs in real time and generates a reproducible <span class="mono">intake-esgf</span> + <span class="mono">xarray</span> Python script (or <span class="mono">wget</span> + <span class="mono">cdo sellonlatbox</span> workflow) that subsets and saves your exact bounding box on your workstation or HPC environment.
+            </div>
+          </details>
+
+          <details class="faq-item" open>
+            <summary><span class="faq-num mono">02</span> Why do CMIP7 variable names look like <span class="mono">tas_tavg-h2m-hxy-u</span> instead of CMIP6's <span class="mono">Amon.tas</span>?</summary>
+            <div class="faq-body muted">
+              Under the <strong>MIP-DRS7</strong> standard, CMIP7 replaces opaque CMOR table names with self-describing <strong>branded variable names</strong> formatted as <span class="mono">&lt;root&gt;_&lt;temporal&gt;-&lt;vertical&gt;-&lt;horizontal&gt;-&lt;area_mask&gt;</span>. For example, daily maximum and minimum 2m air temperature share the physical root <span class="mono">tas</span> and are distinguished explicitly as <span class="mono">tas_tmax-h2m-hxy-u</span> and <span class="mono">tas_tmin-h2m-hxy-u</span>. Step 02 displays both the new CMIP7 branded syntax and legacy CMIP6 equivalents side by side.
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary><span class="faq-num mono">03</span> Should I select <span class="mono">0° to 360° (CMIP)</span> or <span class="mono">-180° to 180°</span> for longitude slicing?</summary>
+            <div class="faq-body muted">
+              Most native climate model grids in CMIP6/CMIP7 store longitude from <span class="mono">0°</span> to <span class="mono">360°E</span>, which is why <span class="mono">0° to 360° (CMIP)</span> is the default. If your bounding box crosses the Prime Meridian (<span class="mono">0°</span>, such as Europe, Mediterranean, or West Africa), slicing <span class="mono">0..360</span> directly would invert the interval—so our Python generator automatically inserts <span class="mono">ds.assign_coords(lon=((ds.lon + 180) % 360) - 180).sortby("lon")</span> before calling <span class="mono">ds.sel(...)</span>.
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary><span class="faq-num mono">04</span> What do the <span class="mono">⚠ No ocean in box</span> or <span class="mono">⚠ Low/no sea ice</span> status warnings mean?</summary>
+            <div class="faq-body muted">
+              When you draw or move a box on the 1:50m map, the portal tests spatial intersection against land polygons, ocean waters, and high-latitude polar zones (<span class="mono">|lat| ≥ 58°</span>). If you select an inland continental box (e.g., central Amazonia), ocean-masked variables (<span class="mono">-sea</span>, such as <span class="mono">tos</span> or <span class="mono">fgco2</span>) will contain only missing/masked grid cells (<span class="mono">NaN</span>). These flags are advisory diagnostics—you can still click any variable and query the catalog.
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary><span class="faq-num mono">05</span> Why did a live ESGF-NG scan return <span class="mono">0 live datasets found</span> for a specific combination?</summary>
+            <div class="faq-body muted">
+              CMIP7 and Assessment Fast Track (CMIP7-AFT) simulations are progressively published across federated STAC endpoints (<span class="mono">discovery.east.esgf.io</span> and <span class="mono">api.stac.esgf.ceda.ac.uk</span>). If a specific scenario or grid label currently returns zero matches, try leaving <span class="mono">grid_label</span> set to <strong>Any</strong>, testing core experiments such as <span class="mono">historical</span>, <span class="mono">esm-hist</span>, <span class="mono">piControl</span>, <span class="mono">scen7-vl</span>, or <span class="mono">scen7-h</span>, or running the standalone CLI script <span class="mono">scripts/cmip7_check_area.py</span>.
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary><span class="faq-num mono">06</span> Do I need an ESGF OpenID account or API key to use this portal or download files?</summary>
+            <div class="faq-body muted">
+              No API key or login is required to use CMIP7 Area Explorer or download public HTTPS NetCDF assets. Legacy ESGF OpenID has been retired in ESGF-NG; if you later use bulk transfer services such as Globus on <a href="https://metagrid.esgf-west.org/" target="_blank" rel="noopener noreferrer">ESGF MetaGrid</a>, sign-in uses modern Institutional SSO or GitHub authentication.
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary><span class="faq-num mono">07</span> How do the <span class="mono">Atlas</span> and <span class="mono">Terrain</span> map views and overlays help area selection?</summary>
+            <div class="faq-body muted">
+              Click the stacked <strong>Layers</strong> icon beneath the zoom buttons (<span class="mono">+ / − / ⟲</span>) to switch between the fast offline <strong>1:50m Vector Atlas</strong> and <strong>Shaded Terrain &amp; Bathymetry</strong> (helpful for aligning bounding boxes with mountain barriers like the Andes or ocean trenches), and toggle <strong>Major Rivers</strong> to trace hydrological basins such as the Amazon, Paraná, Nile, or Danube.
+            </div>
+          </details>
+
+          <details class="faq-item">
+            <summary><span class="faq-num mono">08</span> What licenses govern CMIP7 datasets and this web application, and how do I cite it?</summary>
+            <div class="faq-body muted">
+              All CMIP7 model outputs are released under <strong>Creative Commons Attribution 4.0 (<span class="mono">CC-BY-4.0</span>)</strong>—please cite the participating modeling groups and WCRP CMIP7 in publications. <strong>CMIP7 Area Explorer</strong> is an independent, community-contributed open-source utility (<a href="https://github.com/mgpcamargo/cmip7-area-explorer/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">MIT License</a>) developed at IAG/USP; formal software citation metadata is available via <a href="https://github.com/mgpcamargo/cmip7-area-explorer/blob/main/CITATION.cff" target="_blank" rel="noopener noreferrer"><span class="mono">CITATION.cff</span></a> on GitHub.
+            </div>
+          </details>
+        </div>
+      </section>
+    </div>
+
     <!-- Institutional Footer -->
     <footer class="about-footer" aria-label="About and Attribution">
       <div class="footer-meta">
@@ -451,6 +517,7 @@
       </div>
 
       <div class="about-links">
+        <a class="footer-text-link" href="docs/CMIP7_Area_Explorer_Visual_Guide.pdf" target="_blank" rel="noopener noreferrer" title="4-Page Visual User Guide (PDF)">User Guide (PDF) ↗</a>
         <a class="footer-text-link" href="https://wcrp-cmip.org/tools/" target="_blank" rel="noopener noreferrer" title="WCRP-CMIP Tools Database">CMIP Tools ↗</a>
         <a class="footer-text-link" href="https://metagrid.esgf-west.org/" target="_blank" rel="noopener noreferrer" title="ESGF MetaGrid Portal">MetaGrid ↗</a>
         <span class="footer-sep" aria-hidden="true"></span>
@@ -480,7 +547,7 @@
 
   </main>
 
-  <script src="data/world-50m.js"></script>
-  <script src="src/app.js"></script>
+  <script src="data/world-50m.js?v=2"></script>
+  <script src="src/app.js?v=2"></script>
 </body>
 </html>
