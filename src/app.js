@@ -91,6 +91,17 @@
   const PAD = 20;
 
   // --- URL Hash Persistence ---
+  function getInitialTabFromUrl() {
+    if (typeof location === "undefined") return "explorer";
+    const rawHash = (location.hash || "").replace(/^#/, "").trim().toLowerCase();
+    if (rawHash === "faq" || rawHash === "guidelines" || rawHash === "explorer") return rawHash;
+    const hashTab = new URLSearchParams(rawHash).get("tab");
+    const queryTab = new URLSearchParams(location.search || "").get("tab");
+    const tab = (hashTab || queryTab || "").toLowerCase();
+    if (tab === "faq" || tab === "guidelines" || tab === "explorer") return tab;
+    return "explorer";
+  }
+
   function loadStateFromHash() {
     if (typeof location === "undefined" || !location.hash || location.hash.length < 2) return;
     try {
@@ -1811,5 +1822,11 @@ esgpull download
   document.getElementById("proj-ne").classList.toggle("active", state.projection === "naturalEarth");
   document.getElementById("proj-eq").classList.toggle("active", state.projection === "equirect");
   refreshAll();
+  const initialTab = getInitialTabFromUrl();
+  if (initialTab !== "explorer") switchMainTab(initialTab);
+  window.addEventListener("hashchange", () => {
+    const t = getInitialTabFromUrl();
+    if (t === "faq" || t === "guidelines" || t === "explorer") switchMainTab(t);
+  });
   maybeAutoQuery();
 })();
