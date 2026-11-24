@@ -30,7 +30,29 @@
     { id: "fgco2", branded: "fgco2_tavg-u-hxy-sea", compound: "ocnBgchem.fgco2_tavg-u-hxy-sea.mon.glb", desc: "Surface Downward Mass Flux of CO2", domain: "ocnBgchem", mask: "sea", freq: "mon", cmip6: "Omon.fgco2", defaultGrid: "g126" }
   ].map(v => ({ ...v, rowKey: v.key || v.id }));
 
-  const WORLD = window.WORLD_110M || { countries: [], lakes: [] };
+  const WORLD = window.WORLD_50M || window.WORLD_110M || { countries: [], lakes: [], rivers: [] };
+
+  const RASTER_LAYERS = {
+    satellite: {
+      id: "s2cloudless-2024",
+      label: "Satellite",
+      attrib: "Imagery: Copernicus Sentinel-2 Cloudless (EOX) · CC-BY-4.0"
+    },
+    terrain: {
+      id: "terrain-light",
+      label: "Terrain",
+      attrib: "Relief & Bathymetry: EOX / SRTM / GEBCO · CC-BY-4.0"
+    },
+    bluemarble: {
+      id: "bluemarble",
+      label: "Blue Marble",
+      attrib: "Imagery: NASA Blue Marble / EOX · Public Domain"
+    }
+  };
+
+  const tileCache = new Map();
+  const MAX_TILE_CACHE = 280;
+  let redrawScheduled = false;
 
   const state = {
     latMin: -56,
@@ -40,6 +62,11 @@
     regionName: "South America",
     lonMode: "360",
     projection: "naturalEarth",
+    basemap: "atlas", // "atlas" | "satellite" | "terrain" | "bluemarble"
+    showBorders: true,
+    showRivers: false,
+    showGrid: true,
+    layersMenuOpen: false,
     toolMode: "draw",
     zoom: 1,
     panX: 0,
@@ -108,6 +135,13 @@
       if (proj === "equirect" || proj === "naturalEarth") {
         state.projection = proj;
       }
+      const mapLayer = params.get("layer");
+      if (mapLayer === "atlas" || RASTER_LAYERS[mapLayer]) {
+        state.basemap = mapLayer;
+      }
+      if (params.get("rivers") === "1") {
+        state.showRivers = true;
+      }
     } catch (_) {
       // Ignore malformed hashes
     }
@@ -117,14 +151,17 @@
     if (typeof location === "undefined") return "";
     const exp = document.getElementById("select-experiment").value;
     const grid = document.getElementById("select-grid").value;
-    const params = new URLSearchParams({
+    const paramsObj = {
       bbox: `${state.lonMin},${state.latMin},${state.lonMax},${state.latMax}`,
       var: state.selectedVar.rowKey,
       exp,
       grid,
       proj: state.projection,
       region: state.regionName
-    });
+    };
+    if (state.basemap !== "atlas") paramsObj.layer = state.basemap;
+    if (state.showRivers) paramsObj.rivers = "1";
+    const params = new URLSearchParams(paramsObj);
     const base = location.href.split("#")[0];
     return `${base}#${params.toString()}`;
   }
@@ -408,6 +445,158 @@
     }
   }
 
+  function drawLines(lines) {
+    for (const ln of lines) {
+      if (ln.length < 2) continue;
+      const [x0, y0] = projectToScreen(ln[0][0], ln[0][1]);
+      ctx.moveTo(x0, y0);
+      for (let i = 1; i < ln.length; i++) {
+        const [x, y] = projectToScreen(ln[i][0], ln[i][1]);
+        ctx.lineTo(x, y);
+      }
+    }
+  }
+
+  function scheduleRedraw() {
+    if (redrawScheduled) return;
+    redrawScheduled = true;
+    requestAnimationFrame(() => {
+      redrawScheduled = false;
+      drawMap();
+    });
+  }
+
+  function requestTile(layerId, z, r, c) {
+    const key = `${layerId}/${z}/${r}/${c}`;
+    let entry = tileCache.get(key);
+    if (entry) {
+      entry.lastUsed = performance.now();
+      return entry;
+    }
+    if (tileCache.size >= MAX_TILE_CACHE) {
+      let oldestKey = null;
+      let oldestTime = Infinity;
+      for (const [k, v] of tileCache.entries()) {
+        if (v.lastUsed < oldestTime && !k.includes("/0/") && !k.includes("/1/")) {
+          oldestTime = v.lastUsed;
+          oldestKey = k;
+        }
+      }
+      if (oldestKey) tileCache.delete(oldestKey);
+    }
+    const img = new Image();
+    img.decoding = "async";
+    entry = { img, loaded: false, error: false, lastUsed: performance.now() };
+    tileCache.set(key, entry);
+    img.onload = () => {
+      entry.loaded = true;
+      scheduleRedraw();
+    };
+    img.onerror = () => {
+      entry.error = true;
+    };
+    img.src = `https://tiles.maps.eox.at/wmts/1.0.0/${layerId}/default/WGS84/${z}/${r}/${c}.jpg`;
+    return entry;
+  }
+
+  function drawTileRegion(img, sx, sy, sw, sh, lonW, lonE, latS, latN) {
+    if (state.projection === "equirect") {
+      const [x1, y1] = projectToScreen(lonW, latN);
+      const [x2, y2] = projectToScreen(lonE, latS);
+      ctx.drawImage(img, sx, sy, sw, sh, x1 - 0.4, y1 - 0.4, (x2 - x1) + 0.8, (y2 - y1) + 0.8);
+      return;
+    }
+    // Natural Earth is pseudocylindrical: parallels are horizontal and x scales linearly with lon per parallel
+    const latSpan = latN - latS;
+    const strips = Math.max(2, Math.min(24, Math.ceil((latSpan * Math.sqrt(state.zoom)) / 2.5)));
+    for (let s = 0; s < strips; s++) {
+      const f0 = s / strips;
+      const f1 = (s + 1) / strips;
+      const latTop = latN - latSpan * f0;
+      const latBot = latN - latSpan * f1;
+      const latMid = 0.5 * (latTop + latBot);
+      const [, dyTop] = projectToScreen(0, latTop);
+      const [, dyBot] = projectToScreen(0, latBot);
+      if (dyBot < -2 || dyTop > BASE_H + 2) continue;
+      const [dxLeft] = projectToScreen(lonW, latMid);
+      const [dxRight] = projectToScreen(lonE, latMid);
+      if (dxRight < -2 || dxLeft > BASE_W + 2) continue;
+      const srcY = sy + sh * f0;
+      const srcH = sh * (f1 - f0);
+      ctx.drawImage(
+        img,
+        sx, srcY, sw, srcH,
+        dxLeft - 0.45, dyTop - 0.45, (dxRight - dxLeft) + 0.9, (dyBot - dyTop) + 0.9
+      );
+    }
+  }
+
+  function isGeoRectVisible(lonW, lonE, latS, latN) {
+    const [, yTop] = projectToScreen(0, latN);
+    const [, yBot] = projectToScreen(0, latS);
+    if (yBot < -4 || yTop > BASE_H + 4) return false;
+    // Check widest latitude in [latS, latN] (closest to equator)
+    const widestLat = (latS <= 0 && latN >= 0) ? 0 : (Math.abs(latS) < Math.abs(latN) ? latS : latN);
+    const [xMin] = projectToScreen(lonW, widestLat);
+    const [xMax] = projectToScreen(lonE, widestLat);
+    return !(xMax < -4 || xMin > BASE_W + 4);
+  }
+
+  function drawRasterBasemap(layerId, dpr) {
+    // Ensure global z=0 base tiles are warmed in cache for instant fallback
+    requestTile(layerId, 0, 0, 0);
+    requestTile(layerId, 0, 0, 1);
+
+    const effectivePx = BASE_W * Math.min(2, dpr) * state.zoom;
+    const targetZ = Math.min(6, Math.max(2, Math.ceil(Math.log2(effectivePx / 560))));
+    const cols = 1 << (targetZ + 1);
+    const rows = 1 << targetZ;
+
+    for (let r = 0; r < rows; r++) {
+      const latN = 90 - (r / rows) * 180;
+      const latS = 90 - ((r + 1) / rows) * 180;
+      const [, yTop] = projectToScreen(0, latN);
+      const [, yBot] = projectToScreen(0, latS);
+      if (yBot < -4 || yTop > BASE_H + 4) continue;
+
+      for (let c = 0; c < cols; c++) {
+        const lonW = -180 + (c / cols) * 360;
+        const lonE = -180 + ((c + 1) / cols) * 360;
+        if (!isGeoRectVisible(lonW, lonE, latS, latN)) continue;
+
+        const exact = requestTile(layerId, targetZ, r, c);
+        if (exact.loaded) {
+          drawTileRegion(exact.img, 0, 0, 256, 256, lonW, lonE, latS, latN);
+          continue;
+        }
+
+        // Progressive ancestor tile fallback to prevent blank flashes while zooming
+        for (let pz = targetZ - 1; pz >= 0; pz--) {
+          const shift = targetZ - pz;
+          const pr = r >> shift;
+          const pc = c >> shift;
+          const parentKey = `${layerId}/${pz}/${pr}/${pc}`;
+          const parent = tileCache.get(parentKey) || (pz <= 1 ? requestTile(layerId, pz, pr, pc) : null);
+          if (parent && parent.loaded) {
+            const scale = 1 << shift;
+            const subSize = 256 / scale;
+            const sx = (c & (scale - 1)) * subSize;
+            const sy = (r & (scale - 1)) * subSize;
+            drawTileRegion(parent.img, sx, sy, subSize, subSize, lonW, lonE, latS, latN);
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  function updateMapAttribution() {
+    const attribEl = document.getElementById("map-attrib");
+    if (!attribEl) return;
+    const raster = RASTER_LAYERS[state.basemap];
+    attribEl.textContent = raster ? raster.attrib : "Natural Earth 1:50m (Public Domain)";
+  }
+
   function drawMap() {
     const dpr = window.devicePixelRatio || 1;
     if (canvas.width !== BASE_W * dpr || canvas.height !== BASE_H * dpr) {
@@ -415,21 +604,47 @@
       canvas.height = BASE_H * dpr;
     }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
 
     const isLight = document.documentElement.classList.contains("light");
-    const outerBg = isLight ? "#dbe6f2" : "#060b16";
-    const oceanTop = isLight ? "#d6ebfa" : "#0b1e38";
-    const oceanEq = isLight ? "#e6f4fe" : "#112c4f";
-    const gridColor = isLight ? "rgba(15, 23, 42, 0.10)" : "rgba(148, 163, 184, 0.14)";
-    const specialLineColor = isLight ? "rgba(2, 132, 199, 0.25)" : "rgba(56, 189, 248, 0.22)";
-    const landFill = isLight ? "#e9e5d8" : "#243447";
-    const landHoverFill = isLight ? "#d6d0bd" : "#324963";
-    const borderColor = isLight ? "#94a3b8" : "#475569";
-    const coastColor = isLight ? "#64748b" : "#64748b";
-    const lakeFill = isLight ? "#cce7fa" : "#0e2645";
-    const boxFill = isLight ? "rgba(37, 99, 235, 0.20)" : "rgba(56, 189, 248, 0.20)";
-    const boxStroke = isLight ? "#1d4ed8" : "#38bdf8";
-    const labelColor = isLight ? "#475569" : "#94a3b8";
+    const rasterCfg = RASTER_LAYERS[state.basemap] || null;
+    const isDarkImagery = state.basemap === "satellite" || state.basemap === "bluemarble";
+    const isLightTerrain = state.basemap === "terrain";
+
+    const outerBg = isLight ? "#dce5ef" : "#060b16";
+    const oceanTop = isLight ? "#d4e8f7" : "#0a1c34";
+    const oceanEq = isLight ? "#e7f3fc" : "#102a4c";
+
+    let gridColor = isLight ? "rgba(15, 23, 42, 0.09)" : "rgba(148, 163, 184, 0.14)";
+    let specialLineColor = isLight ? "rgba(2, 132, 199, 0.28)" : "rgba(56, 189, 248, 0.24)";
+    if (isDarkImagery) {
+      gridColor = "rgba(255, 255, 255, 0.16)";
+      specialLineColor = "rgba(125, 211, 252, 0.36)";
+    } else if (isLightTerrain) {
+      gridColor = "rgba(15, 23, 42, 0.13)";
+      specialLineColor = "rgba(3, 105, 161, 0.32)";
+    }
+
+    const landFill = isLight ? "#f0ede4" : "#223244";
+    const landHoverFill = rasterCfg
+      ? (isDarkImagery ? "rgba(255, 255, 255, 0.14)" : "rgba(14, 116, 144, 0.14)")
+      : (isLight ? "#e1dccf" : "#30465e");
+    const borderColor = rasterCfg
+      ? (isDarkImagery ? "rgba(248, 250, 252, 0.48)" : "rgba(30, 41, 59, 0.46)")
+      : (isLight ? "#94a3b8" : "#475569");
+    const coastColor = isDarkImagery ? "rgba(226, 232, 240, 0.55)" : "#64748b";
+    const lakeFill = isLight ? "#cbe4f8" : "#0d2442";
+    const riverColor = isDarkImagery
+      ? "rgba(103, 232, 249, 0.80)"
+      : (isLightTerrain ? "rgba(2, 132, 199, 0.78)" : (isLight ? "rgba(2, 132, 199, 0.68)" : "rgba(56, 189, 248, 0.62)"));
+
+    const boxFill = isDarkImagery
+      ? "rgba(56, 189, 248, 0.18)"
+      : (isLight ? "rgba(11, 79, 138, 0.16)" : "rgba(56, 189, 248, 0.20)");
+    const boxStroke = isDarkImagery ? "#38bdf8" : (isLight ? "#0b4f8a" : "#38bdf8");
+    const labelColor = isDarkImagery ? "#f8fafc" : (isLight || isLightTerrain ? "#1e293b" : "#cbd5e1");
+    const labelHalo = isDarkImagery ? "rgba(15, 23, 42, 0.82)" : (isLight || isLightTerrain ? "rgba(255, 255, 255, 0.82)" : "rgba(15, 23, 42, 0.78)");
 
     ctx.fillStyle = outerBg;
     ctx.fillRect(0, 0, BASE_W, BASE_H);
@@ -445,53 +660,94 @@
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, BASE_W, BASE_H);
 
-    ctx.strokeStyle = gridColor;
-    ctx.lineWidth = 1;
-    for (let lon = -150; lon <= 150; lon += 30) {
-      ctx.beginPath();
-      for (let lat = -90; lat <= 90; lat += 5) {
-        const [x, y] = projectToScreen(lon, lat);
-        if (lat === -90) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-      }
-      ctx.stroke();
-    }
-    for (let lat = -60; lat <= 60; lat += 30) {
-      ctx.beginPath();
-      for (let lon = -180; lon <= 180; lon += 10) {
-        const [x, y] = projectToScreen(lon, lat);
-        if (lon === -180) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-      }
-      ctx.stroke();
+    if (rasterCfg) {
+      drawRasterBasemap(rasterCfg.id, dpr);
     }
 
-    ctx.save();
-    ctx.setLineDash([4, 4]);
-    ctx.strokeStyle = specialLineColor;
-    [0, 23.44, -23.44, 66.56, -66.56].forEach(lat => {
-      ctx.beginPath();
-      for (let lon = -180; lon <= 180; lon += 10) {
-        const [x, y] = projectToScreen(lon, lat);
-        if (lon === -180) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    if (state.showGrid) {
+      ctx.strokeStyle = gridColor;
+      ctx.lineWidth = 0.9;
+      for (let lon = -150; lon <= 150; lon += 30) {
+        ctx.beginPath();
+        for (let lat = -90; lat <= 90; lat += 5) {
+          const [x, y] = projectToScreen(lon, lat);
+          if (lat === -90) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
       }
-      ctx.stroke();
-    });
-    ctx.restore();
+      for (let lat = -60; lat <= 60; lat += 30) {
+        ctx.beginPath();
+        for (let lon = -180; lon <= 180; lon += 10) {
+          const [x, y] = projectToScreen(lon, lat);
+          if (lon === -180) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
 
-    ctx.fillStyle = landFill;
-    ctx.strokeStyle = borderColor;
-    ctx.lineWidth = 0.75;
-    for (const c of WORLD.countries) {
+      ctx.save();
+      ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = specialLineColor;
+      [0, 23.44, -23.44, 66.56, -66.56].forEach(lat => {
+        ctx.beginPath();
+        for (let lon = -180; lon <= 180; lon += 10) {
+          const [x, y] = projectToScreen(lon, lat);
+          if (lon === -180) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      });
+      ctx.restore();
+    }
+
+    if (!rasterCfg) {
+      ctx.fillStyle = landFill;
+      ctx.strokeStyle = state.showBorders ? borderColor : coastColor;
+      ctx.lineWidth = state.showBorders ? 0.65 : 0.45;
+      for (const c of WORLD.countries) {
+        ctx.beginPath();
+        drawRings(c.g);
+        ctx.fill("evenodd");
+        if (state.showBorders) ctx.stroke();
+      }
+    } else if (state.showBorders) {
+      ctx.strokeStyle = borderColor;
+      ctx.lineWidth = 0.75;
+      for (const c of WORLD.countries) {
+        ctx.beginPath();
+        drawRings(c.g);
+        ctx.stroke();
+      }
+    }
+
+    if (!rasterCfg && WORLD.lakes && WORLD.lakes.length) {
+      ctx.fillStyle = lakeFill;
+      ctx.strokeStyle = coastColor;
+      ctx.lineWidth = 0.5;
       ctx.beginPath();
-      drawRings(c.g);
+      drawRings(WORLD.lakes);
       ctx.fill("evenodd");
       ctx.stroke();
+    }
+
+    if (state.showRivers && WORLD.rivers && WORLD.rivers.length) {
+      ctx.save();
+      ctx.strokeStyle = riverColor;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      for (const rv of WORLD.rivers) {
+        if (state.zoom < 1.6 && rv.s > 4) continue;
+        ctx.lineWidth = rv.s <= 2 ? (state.zoom >= 2 ? 1.35 : 1.0) : (state.zoom >= 2 ? 0.9 : 0.65);
+        ctx.beginPath();
+        drawLines(rv.l);
+        ctx.stroke();
+      }
+      ctx.restore();
     }
 
     if (state.hoverCountry) {
       ctx.save();
       ctx.fillStyle = landHoverFill;
-      ctx.strokeStyle = boxStroke;
-      ctx.lineWidth = 1.4;
+      ctx.strokeStyle = isDarkImagery ? "#fbbf24" : boxStroke;
+      ctx.lineWidth = 1.35;
       ctx.beginPath();
       drawRings(state.hoverCountry.g);
       ctx.fill("evenodd");
@@ -499,30 +755,26 @@
       ctx.restore();
     }
 
-    if (WORLD.lakes && WORLD.lakes.length) {
-      ctx.fillStyle = lakeFill;
-      ctx.strokeStyle = coastColor;
-      ctx.lineWidth = 0.6;
-      ctx.beginPath();
-      drawRings(WORLD.lakes);
-      ctx.fill("evenodd");
-      ctx.stroke();
-    }
-
     // Country labels when zoomed in
-    if (state.zoom >= 1.8) {
-      ctx.font = "500 12px -apple-system, sans-serif";
-      ctx.fillStyle = labelColor;
+    if (state.showBorders && state.zoom >= 1.75) {
+      ctx.save();
+      ctx.font = "600 11.5px 'Plus Jakarta Sans', -apple-system, sans-serif";
       ctx.textAlign = "center";
+      ctx.lineJoin = "round";
+      ctx.lineWidth = 2.6;
+      ctx.strokeStyle = labelHalo;
+      ctx.fillStyle = labelColor;
+      const minArea = state.zoom >= 3.2 ? 2.5 : 11;
       for (const c of WORLD.countries) {
         const areaApprox = (c.b[2] - c.b[0]) * (c.b[3] - c.b[1]);
-        if (areaApprox < 12) continue;
+        if (areaApprox < minArea) continue;
         const [cx, cy] = projectToScreen((c.b[0] + c.b[2]) / 2, (c.b[1] + c.b[3]) / 2);
-        if (cx >= 0 && cx <= BASE_W && cy >= 0 && cy <= BASE_H) {
+        if (cx >= 12 && cx <= BASE_W - 12 && cy >= 12 && cy <= BASE_H - 12) {
+          ctx.strokeText(c.n, cx, cy);
           ctx.fillText(c.n, cx, cy);
         }
       }
-      ctx.textAlign = "left";
+      ctx.restore();
     }
 
     // Hovered STAC dataset footprint preview
@@ -530,17 +782,22 @@
       ctx.save();
       ctx.setLineDash([5, 4]);
       traceBoxPerimeter(state.previewBbox[0], state.previewBbox[1], state.previewBbox[2], state.previewBbox[3]);
-      ctx.strokeStyle = "#34d399";
-      ctx.lineWidth = 1.8;
+      ctx.strokeStyle = "#10b981";
+      ctx.lineWidth = 1.9;
       ctx.stroke();
       ctx.restore();
     }
 
-    // User Selection Bounding Box
+    // User Selection Bounding Box (with subtle outer contrast casing on imagery)
     ctx.save();
     traceBoxPerimeter(state.lonMin, state.latMin, state.lonMax, state.latMax);
     ctx.fillStyle = boxFill;
     ctx.fill();
+    if (rasterCfg) {
+      ctx.strokeStyle = "rgba(15, 23, 42, 0.65)";
+      ctx.lineWidth = 3.8;
+      ctx.stroke();
+    }
     ctx.strokeStyle = boxStroke;
     ctx.lineWidth = 2.2;
     ctx.stroke();
@@ -550,8 +807,8 @@
 
     ctx.save();
     traceGlobeBoundary();
-    ctx.strokeStyle = coastColor;
-    ctx.lineWidth = 1.4;
+    ctx.strokeStyle = isLight ? "#94a3b8" : "#475569";
+    ctx.lineWidth = 1.25;
     ctx.stroke();
     ctx.restore();
 
@@ -560,26 +817,26 @@
       ctx.fillStyle = "#ffffff";
       ctx.strokeStyle = boxStroke;
       ctx.lineWidth = 2;
-      ctx.fillRect(h.pt[0] - 4.5, h.pt[1] - 4.5, 9, 9);
-      ctx.strokeRect(h.pt[0] - 4.5, h.pt[1] - 4.5, 9, 9);
+      ctx.fillRect(h.pt[0] - 4.25, h.pt[1] - 4.25, 8.5, 8.5);
+      ctx.strokeRect(h.pt[0] - 4.25, h.pt[1] - 4.25, 8.5, 8.5);
     }
 
     const [cx, cy] = projectToScreen((state.lonMin + state.lonMax) / 2, state.latMax);
     const dLat = Math.round((state.latMax - state.latMin) * 10) / 10;
     const dLon = Math.round((state.lonMax - state.lonMin) * 10) / 10;
     const dimText = `${dLat}° × ${dLon}°`;
-    ctx.font = "600 12px ui-monospace, monospace";
+    ctx.font = "600 11.5px 'IBM Plex Mono', ui-monospace, monospace";
     const tw = ctx.measureText(dimText).width + 12;
     const bx = Math.max(8, Math.min(BASE_W - tw - 8, cx - tw / 2));
     const by = Math.max(6, cy - 24);
-    ctx.fillStyle = "rgba(15, 23, 42, 0.85)";
+    ctx.fillStyle = "rgba(15, 23, 42, 0.86)";
     ctx.fillRect(bx, by, tw, 20);
     ctx.fillStyle = "#f8fafc";
     ctx.fillText(dimText, bx + 6, by + 14);
 
     if (state.zoom <= 1.15) {
-      ctx.font = "500 12px ui-monospace, monospace";
-      ctx.fillStyle = labelColor;
+      ctx.font = "500 11px 'IBM Plex Mono', ui-monospace, monospace";
+      ctx.fillStyle = isLight ? "#475569" : "#94a3b8";
       [-60, 0, 60].forEach(lat => {
         const [lx, ly] = projectToScreen(-180, lat);
         const txt = lat === 0 ? "0°" : (lat > 0 ? `${lat}°N` : `${Math.abs(lat)}°S`);
@@ -1408,8 +1665,78 @@ esgpull download
     if (isExp) drawMap();
   }
 
+  function syncLayersUi() {
+    ["atlas", "satellite", "terrain", "bluemarble"].forEach(k => {
+      const btn = document.getElementById("layer-opt-" + k);
+      if (btn) btn.classList.toggle("active", state.basemap === k);
+    });
+    const layersBtn = document.getElementById("layers-toggle-btn");
+    if (layersBtn) {
+      layersBtn.classList.toggle("active", state.layersMenuOpen || state.basemap !== "atlas");
+      layersBtn.setAttribute("aria-expanded", state.layersMenuOpen ? "true" : "false");
+    }
+    const popover = document.getElementById("map-layers-popover");
+    if (popover) popover.classList.toggle("hidden", !state.layersMenuOpen);
+
+    const bChk = document.getElementById("chk-map-borders");
+    if (bChk) bChk.checked = state.showBorders;
+    const rChk = document.getElementById("chk-map-rivers");
+    if (rChk) rChk.checked = state.showRivers;
+    const gChk = document.getElementById("chk-map-grid");
+    if (gChk) gChk.checked = state.showGrid;
+    updateMapAttribution();
+  }
+
+  function toggleLayersMenu(e) {
+    if (e && e.stopPropagation) e.stopPropagation();
+    state.layersMenuOpen = !state.layersMenuOpen;
+    syncLayersUi();
+  }
+
+  function setBasemap(layerKey) {
+    if (layerKey !== "atlas" && !RASTER_LAYERS[layerKey]) return;
+    state.basemap = layerKey;
+    syncLayersUi();
+    drawMap();
+  }
+
+  function toggleMapOverlay(kind, checked) {
+    if (kind === "borders") state.showBorders = !!checked;
+    else if (kind === "rivers") state.showRivers = !!checked;
+    else if (kind === "grid") state.showGrid = !!checked;
+    syncLayersUi();
+    drawMap();
+  }
+
+  document.addEventListener("pointerdown", (e) => {
+    if (!state.layersMenuOpen) return;
+    const pop = document.getElementById("map-layers-popover");
+    const btn = document.getElementById("layers-toggle-btn");
+    if ((pop && pop.contains(e.target)) || (btn && btn.contains(e.target))) return;
+    state.layersMenuOpen = false;
+    syncLayersUi();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && state.layersMenuOpen) {
+      state.layersMenuOpen = false;
+      syncLayersUi();
+    }
+  });
+
+  function syncThemeButtonLabel() {
+    const btn = document.getElementById("theme-toggle-btn");
+    if (!btn) return;
+    const isLight = document.documentElement.classList.contains("light");
+    btn.textContent = isLight ? "Dark Mode" : "Light Mode";
+  }
+
   function toggleTheme() {
-    document.documentElement.classList.toggle("light");
+    const isLight = document.documentElement.classList.toggle("light");
+    try {
+      localStorage.setItem("cmip7_theme", isLight ? "light" : "dark");
+    } catch (_) {}
+    syncThemeButtonLabel();
     drawMap();
   }
 
@@ -1470,13 +1797,24 @@ esgpull download
     switchCodeTab,
     switchMainTab,
     toggleTheme,
+    toggleLayersMenu,
+    setBasemap,
+    toggleMapOverlay,
     copyCode,
     copyCdoCommand,
     copyShareUrl
   });
 
+  try {
+    const savedTheme = localStorage.getItem("cmip7_theme");
+    if (savedTheme === "light") document.documentElement.classList.add("light");
+    else if (savedTheme === "dark") document.documentElement.classList.remove("light");
+  } catch (_) {}
+
   loadStateFromHash();
   syncInputs();
+  syncThemeButtonLabel();
+  syncLayersUi();
   document.getElementById("proj-ne").classList.toggle("active", state.projection === "naturalEarth");
   document.getElementById("proj-eq").classList.toggle("active", state.projection === "equirect");
   refreshAll();

@@ -51,10 +51,58 @@
           <div class="map-wrap">
             <canvas id="world-map" width="960" height="500"></canvas>
             <div id="map-hud" class="map-hud mono">Lat: — , Lon: —</div>
+            <div id="map-attrib" class="map-attrib">Natural Earth 1:50m (Public Domain)</div>
             <div class="map-zoom-controls">
-              <button onclick="zoomStep(1)" title="Zoom in">+</button>
-              <button onclick="zoomStep(-1)" title="Zoom out">−</button>
-              <button onclick="resetView()" title="Reset zoom &amp; pan">⟲</button>
+              <button onclick="zoomStep(1)" title="Zoom in" aria-label="Zoom in">+</button>
+              <button onclick="zoomStep(-1)" title="Zoom out" aria-label="Zoom out">−</button>
+              <button onclick="resetView()" title="Reset zoom &amp; pan" aria-label="Reset zoom and pan">⟲</button>
+              <div class="map-ctrl-sep"></div>
+              <button id="layers-toggle-btn" class="layers-btn" onclick="toggleLayersMenu(event)" title="Map layers (Satellite, Terrain, Bathymetry)" aria-label="Map layers" aria-expanded="false">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                  <polyline points="2 12 12 17 22 12"></polyline>
+                  <polyline points="2 17 12 22 22 17"></polyline>
+                </svg>
+              </button>
+            </div>
+
+            <!-- Google-Maps-style Layers Popover -->
+            <div id="map-layers-popover" class="map-layers-popover hidden" role="dialog" aria-label="Map Layers">
+              <div class="layers-section-label">Map Type</div>
+              <div class="layers-grid">
+                <button id="layer-opt-atlas" class="layer-option active" onclick="setBasemap('atlas')">
+                  <span class="layer-swatch swatch-atlas" aria-hidden="true"></span>
+                  <span class="layer-name">Atlas</span>
+                </button>
+                <button id="layer-opt-satellite" class="layer-option" onclick="setBasemap('satellite')">
+                  <span class="layer-swatch swatch-satellite" aria-hidden="true"></span>
+                  <span class="layer-name">Satellite</span>
+                </button>
+                <button id="layer-opt-terrain" class="layer-option" onclick="setBasemap('terrain')">
+                  <span class="layer-swatch swatch-terrain" aria-hidden="true"></span>
+                  <span class="layer-name">Terrain</span>
+                </button>
+                <button id="layer-opt-bluemarble" class="layer-option" onclick="setBasemap('bluemarble')">
+                  <span class="layer-swatch swatch-bluemarble" aria-hidden="true"></span>
+                  <span class="layer-name">Bathymetry</span>
+                </button>
+              </div>
+              <div class="layers-divider"></div>
+              <div class="layers-section-label">Map Details</div>
+              <div class="layers-toggles">
+                <label class="layer-check">
+                  <input id="chk-map-borders" type="checkbox" checked onchange="toggleMapOverlay('borders', this.checked)" />
+                  <span>Borders &amp; Labels</span>
+                </label>
+                <label class="layer-check">
+                  <input id="chk-map-rivers" type="checkbox" onchange="toggleMapOverlay('rivers', this.checked)" />
+                  <span>Major Rivers</span>
+                </label>
+                <label class="layer-check">
+                  <input id="chk-map-grid" type="checkbox" checked onchange="toggleMapOverlay('grid', this.checked)" />
+                  <span>Lat/Lon Grid</span>
+                </label>
+              </div>
             </div>
           </div>
 
@@ -361,7 +409,7 @@
 
   </div>
 
-  <script src="data/world-110m.js"></script>
+  <script src="data/world-50m.js"></script>
   <script src="src/app.js"></script>
 </body>
 </html>
