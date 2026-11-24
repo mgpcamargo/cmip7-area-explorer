@@ -1,50 +1,93 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="light">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CMIP7 Area Explorer &amp; ESGF-NG Portal</title>
+  <meta name="description" content="Interactive geographic area selector, CMIP7 branded variable diagnostics, live ESGF-NG STAC dataset browser, and Python/CDO subset script builder." />
+  <meta name="author" content="Marcelo G. P. Camargo" />
+
+  <!-- OpenGraph / Social Preview -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="CMIP7 Area Explorer &amp; ESGF-NG Portal" />
+  <meta property="og:description" content="Select any bounding box, inspect CMIP7 realm &amp; branded variable eligibility, query live ESGF-NG STAC holdings, and export regional subset scripts." />
+  <meta property="og:url" content="https://mgpcamargo.github.io/cmip7-area-explorer/" />
+  <meta property="og:image" content="https://mgpcamargo.github.io/cmip7-area-explorer/assets/og-preview.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="CMIP7 Area Explorer &amp; ESGF-NG Portal" />
+  <meta name="twitter:description" content="Regional CMIP7 catalog discovery, area diagnostics &amp; subset script builder." />
+  <meta name="twitter:image" content="https://mgpcamargo.github.io/cmip7-area-explorer/assets/og-preview.png" />
+
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles/main.css" />
 </head>
 <body>
-  <div class="container">
 
-    <!-- Header -->
-    <header class="card header">
-      <div>
-        <div class="title-row">
-          <h1>CMIP7 Area Explorer &amp; Download Guide</h1>
-          <span class="badge">ESGF-NG / MIP-DRS7</span>
+  <!-- Institutional Top Masthead -->
+  <header class="site-masthead">
+    <div class="masthead-inner">
+      <div class="brand-lockup">
+        <svg class="brand-emblem" viewBox="0 0 36 36" fill="none" aria-hidden="true">
+          <rect width="36" height="36" rx="6" fill="#0b155e" stroke="#64d2cd" stroke-opacity="0.45" />
+          <circle cx="18" cy="18" r="12" stroke="#64d2cd" stroke-width="1.3" stroke-opacity="0.78" />
+          <ellipse cx="18" cy="18" rx="6.2" ry="12" stroke="#64d2cd" stroke-width="1" stroke-opacity="0.48" />
+          <line x1="6" y1="18" x2="30" y2="18" stroke="#64d2cd" stroke-width="1" stroke-opacity="0.48" />
+          <rect x="13" y="12.5" width="11.5" height="10.5" fill="#f2b30d" fill-opacity="0.22" stroke="#f2b30d" stroke-width="1.75" />
+          <rect x="11.7" y="11.2" width="2.6" height="2.6" fill="#ffffff" stroke="#f2b30d" stroke-width="1" />
+          <rect x="23.2" y="11.2" width="2.6" height="2.6" fill="#ffffff" stroke="#f2b30d" stroke-width="1" />
+          <rect x="11.7" y="21.7" width="2.6" height="2.6" fill="#ffffff" stroke="#f2b30d" stroke-width="1" />
+          <rect x="23.2" y="21.7" width="2.6" height="2.6" fill="#ffffff" stroke="#f2b30d" stroke-width="1" />
+        </svg>
+        <div>
+          <div class="title-row">
+            <h1>CMIP7 Area Explorer</h1>
+            <span class="masthead-tag mono">ESGF-NG · MIP-DRS7</span>
+            <span class="masthead-subtag">Community Tool for WCRP CMIP7</span>
+          </div>
+          <p class="masthead-subtitle">
+            Delimit any geographic region, query live CMIP7 STAC datasets, inspect NetCDF holdings, and export area-cropping scripts.
+          </p>
         </div>
-        <p class="muted">
-          Select any region, query live CMIP7 datasets, inspect NetCDF files, and export area-cropping scripts.
-        </p>
       </div>
-      <div class="btn-group">
-        <button id="tab-btn-explorer" class="active" onclick="switchMainTab('explorer')">Area Explorer</button>
-        <button id="tab-btn-guidelines" onclick="switchMainTab('guidelines')">CMIP7 Guidelines</button>
-        <button id="share-btn" onclick="copyShareUrl()" title="Copy shareable link for this region &amp; variable">Share Link</button>
-        <button onclick="toggleTheme()" title="Switch Dark/Light theme">Theme</button>
-      </div>
-    </header>
+
+      <nav class="masthead-nav" aria-label="Primary actions">
+        <div class="seg-group masthead-tabs">
+          <button id="tab-btn-explorer" class="active" onclick="switchMainTab('explorer')">Area Explorer</button>
+          <button id="tab-btn-guidelines" onclick="switchMainTab('guidelines')">CMIP7 Guide</button>
+        </div>
+        <button id="share-btn" class="masthead-btn" onclick="copyShareUrl()" title="Copy shareable link for this region &amp; variable">Share Link</button>
+        <button id="theme-toggle-btn" class="masthead-btn" onclick="toggleTheme()" title="Switch Light / Dark mode">Dark Mode</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
 
     <!-- MAIN TAB 1: AREA EXPLORER -->
-    <div id="panel-explorer" style="display:flex; flex-direction:column; gap:18px;">
+    <div id="panel-explorer" class="stack-lg">
 
       <div class="grid-main">
 
         <!-- Interactive World Atlas -->
         <section class="card map-card">
           <div class="map-toolbar">
-            <div>
-              <h2>1. Select Geographic Area</h2>
+            <div class="section-heading">
+              <span class="step-num mono">01</span>
+              <h2>Select Geographic Area</h2>
             </div>
-            <div class="btn-group">
-              <button id="proj-ne" class="sm active" onclick="setProjection('naturalEarth')">Natural Earth</button>
-              <button id="proj-eq" class="sm" onclick="setProjection('equirect')">Equirectangular</button>
-              <button id="tool-draw" class="sm active" onclick="setToolMode('draw')">Draw Box</button>
-              <button id="tool-pan" class="sm" onclick="setToolMode('pan')">Pan</button>
-              <button class="sm" onclick="resetGlobal()">Global</button>
+            <div class="toolbar-controls">
+              <div class="seg-group" role="group" aria-label="Map projection">
+                <button id="proj-ne" class="sm active" onclick="setProjection('naturalEarth')">Natural Earth</button>
+                <button id="proj-eq" class="sm" onclick="setProjection('equirect')">Equirectangular</button>
+              </div>
+              <div class="seg-group" role="group" aria-label="Pointer mode">
+                <button id="tool-draw" class="sm active" onclick="setToolMode('draw')">Draw Box</button>
+                <button id="tool-pan" class="sm" onclick="setToolMode('pan')">Pan</button>
+              </div>
+              <button class="sm" onclick="resetGlobal()" title="Select full globe (-90..90, -180..180)">Global</button>
             </div>
           </div>
 
@@ -107,87 +150,87 @@
           </div>
 
           <div class="presets">
-            <span class="muted small"><strong>Presets:</strong></span>
-            <button class="sm" onclick="applyPreset('South America', -56, 13, -82, -34)">South America</button>
-            <button class="sm" onclick="applyPreset('Amazon Basin', -20, 6, -79, -48)">Amazon Basin</button>
-            <button class="sm" onclick="applyPreset('North America', 15, 72, -168, -52)">North America</button>
-            <button class="sm" onclick="applyPreset('Europe', 35, 71, -12, 40)">Europe</button>
-            <button class="sm" onclick="applyPreset('Mediterranean', 30, 46, -6, 37)">Mediterranean</button>
-            <button class="sm" onclick="applyPreset('Africa', -35, 37, -18, 52)">Africa</button>
-            <button class="sm" onclick="applyPreset('East Asia', 18, 54, 100, 146)">East Asia</button>
-            <button class="sm" onclick="applyPreset('Australia &amp; NZ', -48, -10, 112, 179)">Australia &amp; NZ</button>
-            <button class="sm" onclick="applyPreset('Niño 3.4 (ENSO)', -5, 5, -170, -120)">Niño 3.4</button>
-            <button class="sm" onclick="applyPreset('North Atlantic', 20, 65, -75, -5)">North Atlantic</button>
-            <button class="sm" onclick="applyPreset('Arctic', 66, 90, -180, 180)">Arctic</button>
+            <span class="presets-label">Regions:</span>
+            <button class="sm preset-btn" onclick="applyPreset('South America', -56, 13, -82, -34)">South America</button>
+            <button class="sm preset-btn" onclick="applyPreset('Amazon Basin', -20, 6, -79, -48)">Amazon Basin</button>
+            <button class="sm preset-btn" onclick="applyPreset('North America', 15, 72, -168, -52)">North America</button>
+            <button class="sm preset-btn" onclick="applyPreset('Europe', 35, 71, -12, 40)">Europe</button>
+            <button class="sm preset-btn" onclick="applyPreset('Mediterranean', 30, 46, -6, 37)">Mediterranean</button>
+            <button class="sm preset-btn" onclick="applyPreset('Africa', -35, 37, -18, 52)">Africa</button>
+            <button class="sm preset-btn" onclick="applyPreset('East Asia', 18, 54, 100, 146)">East Asia</button>
+            <button class="sm preset-btn" onclick="applyPreset('Australia &amp; NZ', -48, -10, 112, 179)">Australia &amp; NZ</button>
+            <button class="sm preset-btn" onclick="applyPreset('Niño 3.4 (ENSO)', -5, 5, -170, -120)">Niño 3.4</button>
+            <button class="sm preset-btn" onclick="applyPreset('North Atlantic', 20, 65, -75, -5)">North Atlantic</button>
+            <button class="sm preset-btn" onclick="applyPreset('Arctic', 66, 90, -180, 180)">Arctic</button>
           </div>
         </section>
 
         <!-- Area Bounds & Diagnostics -->
-        <aside class="card" style="display:flex; flex-direction:column; gap:14px;">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <h2>Area Bounds &amp; Check</h2>
-            <span id="region-label" class="pill">South America</span>
+        <aside class="card bounds-card">
+          <div class="bounds-header">
+            <h2>Area Bounds &amp; Diagnostics</h2>
+            <span id="region-label" class="region-tag mono">South America</span>
           </div>
 
           <div class="grid-2">
             <div class="field">
-              <label>Lat Min (°N)</label>
-              <input id="input-lat-min" type="number" min="-90" max="90" step="0.5" value="-56" onchange="onManualCoordChange()" />
+              <label for="input-lat-min">Lat Min (°N)</label>
+              <input id="input-lat-min" class="mono" type="number" min="-90" max="90" step="0.5" value="-56" onchange="onManualCoordChange()" />
             </div>
             <div class="field">
-              <label>Lat Max (°N)</label>
-              <input id="input-lat-max" type="number" min="-90" max="90" step="0.5" value="13" onchange="onManualCoordChange()" />
+              <label for="input-lat-max">Lat Max (°N)</label>
+              <input id="input-lat-max" class="mono" type="number" min="-90" max="90" step="0.5" value="13" onchange="onManualCoordChange()" />
             </div>
             <div class="field">
-              <label>Lon Min (°E)</label>
-              <input id="input-lon-min" type="number" min="-180" max="180" step="0.5" value="-82" onchange="onManualCoordChange()" />
+              <label for="input-lon-min">Lon Min (°E)</label>
+              <input id="input-lon-min" class="mono" type="number" min="-180" max="180" step="0.5" value="-82" onchange="onManualCoordChange()" />
             </div>
             <div class="field">
-              <label>Lon Max (°E)</label>
-              <input id="input-lon-max" type="number" min="-180" max="180" step="0.5" value="-34" onchange="onManualCoordChange()" />
+              <label for="input-lon-max">Lon Max (°E)</label>
+              <input id="input-lon-max" class="mono" type="number" min="-180" max="180" step="0.5" value="-34" onchange="onManualCoordChange()" />
             </div>
           </div>
 
           <div>
-            <span class="muted small" style="display:block; margin-bottom:5px;">CMIP Longitude Convention (Python/xarray)</span>
-            <div class="grid-2">
+            <span class="field-group-label">CMIP Longitude Convention (Python / xarray)</span>
+            <div class="seg-group full-seg">
               <button id="lon-mode-180" onclick="setLonMode('180')">-180° to 180°</button>
               <button id="lon-mode-360" class="active" onclick="setLonMode('360')">0° to 360° (CMIP)</button>
             </div>
           </div>
 
-          <div class="diag-box" style="flex:1; justify-content:space-between;">
-            <div class="muted small" style="text-transform:uppercase; letter-spacing:0.04em; font-weight:600;">What Can Be Downloaded Here</div>
+          <div class="diag-box">
+            <div class="diag-heading">Regional Eligibility Summary</div>
             <div class="grid-2">
               <div class="stat-tile">
                 <div class="muted small">Global Area %</div>
-                <div id="diag-area-pct" class="stat-val">—</div>
+                <div id="diag-area-pct" class="stat-val mono">—</div>
               </div>
               <div class="stat-tile">
-                <div class="muted small">Surface Coverage</div>
+                <div class="muted small">Surface Mask</div>
                 <div id="diag-surface" class="stat-val">—</div>
               </div>
             </div>
-            <div class="small">
-              <span class="muted">Countries in box: </span>
+            <div class="small countries-line">
+              <span class="muted">Intersecting territories: </span>
               <span id="diag-countries">—</span>
             </div>
-            <div id="diag-realms" style="display:flex; flex-wrap:wrap; gap:6px;"></div>
+            <div id="diag-realms" class="realm-pills"></div>
           </div>
         </aside>
       </div>
 
       <!-- Full-width Two-Path Guidance Strip -->
       <section class="card two-path-banner">
-        <div id="two-path-title" class="small" style="font-weight:600; color:var(--fg);">Two ways to get this area:</div>
+        <div id="two-path-title" class="two-path-heading">Two ways to get this area:</div>
         <div class="two-path-grid">
-          <div class="path-card">
-            <div style="font-weight:600; color:var(--fg);">A. Area-only output (Recommended)</div>
-            <div class="muted small" style="margin-top:3px;">Export and run the Step 3 Python script on your computer — running that script saves a cropped <span class="mono">.nc</span> file (this web page only generates the script).</div>
+          <div class="path-card path-recommended">
+            <div class="path-title">A. Regional subset output <span class="rec-tag">Recommended</span></div>
+            <div class="muted small">Export and run the Step 03 Python script on your machine — running that script downloads and saves a cropped <span class="mono">.nc</span> file for your box (this browser app generates the script).</div>
           </div>
           <div class="path-card">
-            <div style="font-weight:600; color:var(--fg);">B. Direct .nc links / wget</div>
-            <div class="muted small" style="margin-top:3px;">Official mirrors host <strong>full-globe</strong> files — crop them locally with <span class="mono">cdo</span> afterward.</div>
+            <div class="path-title">B. Full-globe NetCDF links / wget</div>
+            <div class="muted small">Official ESGF mirrors host global (<span class="mono">_glb_</span>) files — download directly or via <span class="mono">wget</span>, then crop locally afterward with <span class="mono">cdo sellonlatbox</span>.</div>
           </div>
         </div>
       </section>
@@ -196,11 +239,14 @@
       <section class="card">
         <div class="map-toolbar">
           <div>
-            <h2>2. Select Variable &amp; Query Live ESGF-NG Catalog</h2>
-            <p class="muted small">Pick a CMIP7 branded variable and experiment, then scan live STAC datasets and NetCDF files.</p>
+            <div class="section-heading">
+              <span class="step-num mono">02</span>
+              <h2>Select Variable &amp; Query Live ESGF-NG Catalog</h2>
+            </div>
+            <p class="muted small section-desc">Choose a CMIP7 branded variable and experiment to query live STAC holdings and NetCDF assets.</p>
           </div>
           <div class="btn-group">
-            <select id="filter-domain" onchange="renderVariablesTable()">
+            <select id="filter-domain" onchange="renderVariablesTable()" aria-label="Filter by realm">
               <option value="all">All Realms / Domains</option>
               <option value="atmos">Atmosphere (atmos)</option>
               <option value="ocean">Ocean (ocean)</option>
@@ -208,7 +254,7 @@
               <option value="seaIce">Sea Ice (seaIce)</option>
               <option value="ocnBgchem">Ocean Biogeochem (ocnBgchem)</option>
             </select>
-            <select id="select-experiment" onchange="onFilterChanged()">
+            <select id="select-experiment" onchange="onFilterChanged()" aria-label="Select CMIP7 experiment">
               <option value="historical">historical (1850–2021)</option>
               <option value="esm-hist">esm-hist (Emissions-driven)</option>
               <option value="scen7-vl">scen7-vl (ScenarioMIP Very Low)</option>
@@ -219,7 +265,7 @@
               <option value="1pctCO2">1pctCO2 (Idealized)</option>
               <option value="abrupt-4xCO2">abrupt-4xCO2 (Idealized)</option>
             </select>
-            <select id="select-grid" onchange="onFilterChanged()">
+            <select id="select-grid" onchange="onFilterChanged()" aria-label="Select CMIP7 grid label">
               <option value="any">Any CMIP7 grid_label</option>
               <option value="g110">g110 (Atmos/Land standard)</option>
               <option value="g126">g126 (Ocean standard)</option>
@@ -227,8 +273,8 @@
               <option value="g124">g124 (Ocean vector)</option>
               <option value="g216">g216</option>
             </select>
-            <input id="input-time-start" type="text" value="1980-01-01" style="width:110px;" onchange="updateGeneratedCode()" title="Start date" />
-            <input id="input-time-end" type="text" value="2020-12-31" style="width:110px;" onchange="updateGeneratedCode()" title="End date" />
+            <input id="input-time-start" class="mono date-input" type="text" value="1980-01-01" onchange="updateGeneratedCode()" title="Start date (YYYY-MM-DD)" aria-label="Start date" />
+            <input id="input-time-end" class="mono date-input" type="text" value="2020-12-31" onchange="updateGeneratedCode()" title="End date (YYYY-MM-DD)" aria-label="End date" />
           </div>
         </div>
 
@@ -239,7 +285,7 @@
                 <th>Var ID</th>
                 <th>CMIP7 Branded Name</th>
                 <th>Description</th>
-                <th>Realm (Area Mask)</th>
+                <th>Realm (Mask)</th>
                 <th>Freq</th>
                 <th>CMIP6 Legacy</th>
                 <th>Area Status</th>
@@ -249,18 +295,18 @@
           </table>
         </div>
 
-        <div style="margin-top:16px; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px;">
+        <div class="esgf-query-row">
           <div class="btn-group">
-            <button id="scan-esgf-btn" class="active" onclick="checkLiveEsgf()">Scan Live ESGF-NG Datasets</button>
-            <select id="select-page-size" onchange="onFilterChanged()" title="Results per page">
+            <button id="scan-esgf-btn" class="primary-btn" onclick="checkLiveEsgf()">Scan Live ESGF-NG Datasets</button>
+            <select id="select-page-size" onchange="onFilterChanged()" title="Results per page" aria-label="Results per page">
               <option value="50" selected>50 per page</option>
               <option value="100">100 per page</option>
               <option value="200">200 per page</option>
               <option value="all">Load all matches</option>
             </select>
-            <label class="small muted" style="display:inline-flex; align-items:center; gap:6px; cursor:pointer;">
+            <label class="inline-check small muted">
               <input id="auto-query-toggle" type="checkbox" checked />
-              Auto-query on filter change
+              <span>Auto-query on filter change</span>
             </label>
           </div>
           <span id="live-esgf-status" class="muted small">Ready to query <span class="mono">discovery.east.esgf.io/search</span></span>
@@ -269,10 +315,10 @@
         <div id="live-filter-bar" class="filter-bar hidden">
           <div id="model-filter-pills" class="btn-group"></div>
           <div class="btn-group">
-            <select id="filter-live-freq" onchange="onLiveClientFilter()">
+            <select id="filter-live-freq" onchange="onLiveClientFilter()" aria-label="Filter loaded frequencies">
               <option value="all">All freqs</option>
             </select>
-            <input id="live-search-input" type="text" placeholder="Filter model, variant, grid..." oninput="onLiveClientFilter()" style="width:200px;" />
+            <input id="live-search-input" type="text" placeholder="Filter model, variant, grid..." oninput="onLiveClientFilter()" style="width:205px;" />
           </div>
         </div>
 
@@ -305,7 +351,7 @@
         <div id="cart-bar" class="cart-bar hidden">
           <div class="small">
             <strong>Download Cart:</strong>
-            <span id="cart-summary" class="muted">0 datasets selected</span>
+            <span id="cart-summary" class="muted mono">0 datasets selected</span>
           </div>
           <div class="btn-group">
             <button class="sm active" onclick="downloadPythonScript()">Python Subset (.py) · Area Only ★</button>
@@ -319,13 +365,16 @@
       <section class="card">
         <div class="map-toolbar">
           <div>
-            <h2>3. How to Download This Area</h2>
-            <p class="muted small">Selected: <strong id="summary-selection" style="color:var(--fg);">tas_tavg-h2m-hxy-u · historical</strong></p>
+            <div class="section-heading">
+              <span class="step-num mono">03</span>
+              <h2>Export Regional Download / Subsetting Script</h2>
+            </div>
+            <p class="muted small section-desc">Selection: <strong id="summary-selection" class="mono" style="color:var(--fg);">tas_tavg-h2m-hxy-u · historical</strong></p>
           </div>
-          <div class="btn-group">
-            <button id="code-tab-python" class="active" onclick="switchCodeTab('python')">Crop Area via Python (Recommended)</button>
-            <button id="code-tab-stac" onclick="switchCodeTab('stac')">STAC API (Metadata Query)</button>
-            <button id="code-tab-cli" onclick="switchCodeTab('cli')">Bulk Global + CDO Crop</button>
+          <div class="seg-group" role="tablist" aria-label="Export method">
+            <button id="code-tab-python" class="active" onclick="switchCodeTab('python')">Python Area Crop ★</button>
+            <button id="code-tab-stac" onclick="switchCodeTab('stac')">STAC API (cURL)</button>
+            <button id="code-tab-cli" onclick="switchCodeTab('cli')">ESGpull / CDO CLI</button>
           </div>
         </div>
 
@@ -338,51 +387,73 @@
     </div>
 
     <!-- MAIN TAB 2: GUIDELINES -->
-    <div id="panel-guidelines" class="hidden" style="display:flex; flex-direction:column; gap:18px;">
+    <div id="panel-guidelines" class="stack-lg hidden">
       <div class="grid-2 grid-2-md">
         <div class="card">
-          <h2>1. How CMIP7 Data Access Works</h2>
-          <ul class="muted" style="padding-left:18px; margin-top:10px;">
-            <li><strong style="color:var(--fg);">Modern catalog search:</strong> CMIP7 replaces legacy portals with web catalogs (<span class="mono">discovery.east.esgf.io</span>, <span class="mono">api.stac.esgf.ceda.ac.uk</span>).</li>
-            <li><strong style="color:var(--fg);">Simple sign-in (No OpenID):</strong> Sign in to MetaGrid (<span class="mono">metagrid.esgf-west.org</span>) using an institutional login or GitHub when needed.</li>
-            <li><strong style="color:var(--fg);">Global files + local Python cropping:</strong> Official ESGF mirrors store full-globe <span class="mono">.nc</span> files. This site builds a Python script (<span class="mono">intake-esgf</span> + <span class="mono">xarray</span>) that, when you run it on your computer, crops the data to your box and saves a smaller <span class="mono">.nc</span> file.</li>
+          <div class="section-heading">
+            <span class="step-num mono">01</span>
+            <h2>How CMIP7 Data Access Works</h2>
+          </div>
+          <ul class="guide-list muted">
+            <li><strong style="color:var(--fg);">Modern STAC catalog search:</strong> CMIP7 replaces legacy ESGF nodes with cloud-friendly STAC APIs (<span class="mono">discovery.east.esgf.io</span>, <span class="mono">api.stac.esgf.ceda.ac.uk</span>).</li>
+            <li><strong style="color:var(--fg);">Institutional / GitHub sign-in (No OpenID):</strong> Authenticate on MetaGrid (<span class="mono">metagrid.esgf-west.org</span>) using Institutional SSO or GitHub when required.</li>
+            <li><strong style="color:var(--fg);">Global files + local Python cropping:</strong> Official ESGF mirrors host full-globe <span class="mono">.nc</span> files under <strong>CC-BY-4.0</strong>. This tool builds an <span class="mono">intake-esgf</span> + <span class="mono">xarray</span> script that subsets your exact bounding box and saves a regional NetCDF4 file.</li>
           </ul>
         </div>
         <div class="card">
-          <h2>2. How CMIP7 Names Variables (Plain Guide)</h2>
-          <p class="muted" style="margin-top:10px;">Instead of CMIP6 names like <span class="mono">day.tasmax</span>, CMIP7 keeps the short name first and appends details after an underscore:</p>
-          <div class="code-box mono small">tas_tmax-h2m-hxy-u</div>
-          <ul class="muted" style="padding-left:18px; margin-top:8px;">
-            <li><span class="mono" style="color:var(--fg);">tas</span> — base variable (air temperature; <span class="mono">pr</span> = precipitation, <span class="mono">tos</span> = sea surface temp)</li>
-            <li><span class="mono" style="color:var(--fg);">tmax / tavg</span> — daily maximum vs. time average</li>
-            <li><span class="mono" style="color:var(--fg);">h2m</span> — height/level (2m above ground; <span class="mono">u</span> = standard surface)</li>
-            <li><span class="mono" style="color:var(--fg);">u / sea / lnd</span> — coverage mask (everywhere, ocean-only, or land-only)</li>
+          <div class="section-heading">
+            <span class="step-num mono">02</span>
+            <h2>CMIP7 Branded Variable Syntax</h2>
+          </div>
+          <p class="muted" style="margin-top:10px;">Instead of CMIP6 table prefixes like <span class="mono">day.tasmax</span>, CMIP7 places the root physical variable first followed by structured branding suffixes:</p>
+          <div class="code-box mono small" style="padding:10px 12px;">tas_tmax-h2m-hxy-u</div>
+          <ul class="guide-list muted">
+            <li><span class="mono" style="color:var(--fg);">tas</span> — root variable (air temperature; <span class="mono">pr</span> = precipitation, <span class="mono">tos</span> = sea surface temp)</li>
+            <li><span class="mono" style="color:var(--fg);">tmax / tavg</span> — temporal statistic (daily maximum vs. time mean)</li>
+            <li><span class="mono" style="color:var(--fg);">h2m</span> — vertical coordinate (2m height; <span class="mono">u</span> = unlevelled/surface)</li>
+            <li><span class="mono" style="color:var(--fg);">u / sea / lnd</span> — horizontal area mask (unmasked everywhere, ocean-only, or land-only)</li>
           </ul>
         </div>
         <div class="card">
-          <h2>3. Grids &amp; Available Experiments</h2>
-          <ul class="muted" style="padding-left:18px; margin-top:10px;">
-            <li><strong style="color:var(--fg);">Standardized grids (<span class="mono">grid_label</span>):</strong> Codes like <span class="mono">g110</span> (atmosphere/land) or <span class="mono">g126</span> (ocean) identify shared grids. Leave set to <strong>Any</strong> unless you need a specific grid.</li>
-            <li><strong style="color:var(--fg);">Active experiments:</strong> Includes <span class="mono">historical</span>, <span class="mono">esm-hist</span> (emissions-driven), <span class="mono">piControl</span>, <span class="mono">amip</span>, and future scenarios (<span class="mono">scen7-vl</span> very low, <span class="mono">scen7-m</span> medium, <span class="mono">scen7-h</span> high emissions).</li>
+          <div class="section-heading">
+            <span class="step-num mono">03</span>
+            <h2>Standardized Grids &amp; Experiments</h2>
+          </div>
+          <ul class="guide-list muted">
+            <li><strong style="color:var(--fg);">Grid labels (<span class="mono">grid_label</span>):</strong> Codes such as <span class="mono">g110</span> (atmosphere/land) or <span class="mono">g126</span> (ocean) identify MIP-DRS7 grid definitions. Leave set to <strong>Any</strong> unless comparing a single target grid.</li>
+            <li><strong style="color:var(--fg);">Core &amp; ScenarioMIP experiments:</strong> Includes <span class="mono">historical</span>, <span class="mono">esm-hist</span> (emissions-driven), <span class="mono">piControl</span>, <span class="mono">amip</span>, idealized CO₂ runs, and <span class="mono">scen7-vl</span> / <span class="mono">scen7-m</span> / <span class="mono">scen7-h</span> projections.</li>
           </ul>
         </div>
         <div class="card">
-          <h2>4. Which Download Option Should I Pick?</h2>
-          <ul class="muted" style="padding-left:18px; margin-top:10px;">
-            <li><strong style="color:var(--fg);">I only want my selected box:</strong> Download <strong style="color:var(--fg);">Python Subset (.py) · Area Only ★</strong> (or copy Step 3's script) and run it in Python on your machine — running the script fetches the data and saves a cropped <span class="mono">.nc</span> file for your box.</li>
-            <li><strong style="color:var(--fg);">I want raw <span class="mono">.nc</span> files directly:</strong> Use <strong style="color:var(--fg);">Download Global .nc ↗</strong> or <strong style="color:var(--fg);">wget (.sh) · Full Global Files</strong>, then crop locally afterward with <span class="mono">cdo sellonlatbox,...</span>.</li>
-            <li><strong style="color:var(--fg);">Large multi-model downloads:</strong> Use <strong style="color:var(--fg);">Globus</strong> via <span class="mono">metagrid.esgf-west.org</span> or the <span class="mono">ESGpull</span> CLI (<span class="mono">v0.10.0+</span>).</li>
+          <div class="section-heading">
+            <span class="step-num mono">04</span>
+            <h2>Choosing a Download Workflow</h2>
+          </div>
+          <ul class="guide-list muted">
+            <li><strong style="color:var(--fg);">Regional subset only:</strong> Export <strong style="color:var(--fg);">Python Subset (.py) · Area Only ★</strong> (or copy Step 03) and run it locally in Python to fetch and save a cropped <span class="mono">.nc</span> file.</li>
+            <li><strong style="color:var(--fg);">Direct full-globe NetCDF files:</strong> Use <strong style="color:var(--fg);">Download Global .nc ↗</strong> or <strong style="color:var(--fg);">wget (.sh)</strong>, then crop locally with <span class="mono">cdo sellonlatbox,...</span>.</li>
+            <li><strong style="color:var(--fg);">Large multi-model ensembles:</strong> Use <strong>Globus</strong> via <a href="https://metagrid.esgf-west.org/" target="_blank" rel="noopener noreferrer">ESGF MetaGrid</a> or the <span class="mono">ESGpull</span> CLI (<span class="mono">v0.10.0+</span>).</li>
           </ul>
         </div>
       </div>
     </div>
 
-    <footer class="about-footer" aria-label="About">
-      <div>
-        <span class="about-title">About</span>
-        <span>Developed by Marcelo G. P. Camargo</span>
+    <!-- Institutional Footer -->
+    <footer class="about-footer" aria-label="About and Attribution">
+      <div class="footer-meta">
+        <div class="footer-primary">
+          <span class="about-title">CMIP7 Area Explorer</span>
+          <span>Developed by <strong>Marcelo G. P. Camargo</strong> · Dept. of Atmospheric Sciences (IAG/USP) · <a href="https://github.com/mgpcamargo/cmip7-area-explorer/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">MIT License</a></span>
+        </div>
+        <div class="footer-disclaimer">
+          Community-contributed open-source tool for <a href="https://wcrp-cmip.github.io/cmip7-guidance/" target="_blank" rel="noopener noreferrer">WCRP CMIP7</a> (not an official WCRP/CMIP-IPO product). CMIP7 model datasets are licensed under <strong>CC-BY-4.0</strong>.
+        </div>
       </div>
+
       <div class="about-links">
+        <a class="footer-text-link" href="https://wcrp-cmip.org/tools/" target="_blank" rel="noopener noreferrer" title="WCRP-CMIP Tools Database">CMIP Tools ↗</a>
+        <a class="footer-text-link" href="https://metagrid.esgf-west.org/" target="_blank" rel="noopener noreferrer" title="ESGF MetaGrid Portal">MetaGrid ↗</a>
+        <span class="footer-sep" aria-hidden="true"></span>
         <a class="about-icon-link" href="mailto:marcelo.garcia.camargo@usp.br" title="Email (marcelo.garcia.camargo@usp.br)" aria-label="USP Email">
           <svg class="about-icon" viewBox="0 0 24 24" aria-hidden="true">
             <rect x="2" y="4" width="20" height="16" rx="3" fill="none" stroke="currentColor" stroke-width="2" />
@@ -394,7 +465,7 @@
             <path fill="currentColor" d="M19.586 0c-.818 0-1.508.19-2.073.565-.563.377-.97.936-1.213 1.68a3.193 3.193 0 0 0-.112.437 8.365 8.365 0 0 0-.078.53 9 9 0 0 0-.05.727c-.01.282-.013.621-.013 1.016a31.121 31.121 0 0 0 .014 1.017 9 9 0 0 0 .05.727 7.946 7.946 0 0 0 .077.53h-.005a3.334 3.334 0 0 0 .113.438c.245.743.65 1.303 1.214 1.677.565.376 1.255.564 2.073.564.8 0 1.472-.18 2.017-.537.547-.358.95-.88 1.213-1.564a4.23 4.23 0 0 0 .209-.826 7.26 7.26 0 0 0 .076-.943h-2.55v1.694h1.073a2.24 2.24 0 0 1-.278.678c-.145.222-.34.383-.586.483-.245.102-.52.152-.826.152-.43 0-.779-.113-1.045-.34-.268-.227-.444-.561-.528-1.003a6.54 6.54 0 0 1-.093-.758 17.87 17.87 0 0 1-.024-.96c0-.345.008-.664.024-.958.017-.295.048-.548.093-.759.084-.44.26-.775.528-1.002.266-.227.615-.34 1.045-.34.355 0 .66.068.915.206.256.138.455.349.596.633l1.39-.74c-.25-.532-.616-.948-1.097-1.248-.48-.3-1.074-.45-1.78-.45zM5.61 5.83c-1.158 0-2.164.06-3.017.181v14.812h2.29v-5.736c.308.027.59.04.844.04.228 0 .516-.013.864-.04l3.52 5.736h2.71l-3.92-6.17c.82-.317 1.464-.803 1.93-1.458.467-.655.7-1.472.7-2.45 0-1.084-.29-1.995-.87-2.733-.58-.738-1.404-1.253-2.473-1.545-.685-.185-1.547-.277-2.58-.277zm.272 2.025c.887 0 1.542.163 1.964.489.423.326.634.815.634 1.467 0 .695-.23 1.24-.69 1.635-.46.395-1.12.592-1.98.592-.348 0-.657-.016-.926-.047V7.91a7.4 7.4 0 0 1 .998-.055z" />
           </svg>
         </a>
-        <a class="about-icon-link" href="https://github.com/mgpcamargo" target="_blank" rel="noopener noreferrer" title="GitHub (mgpcamargo)" aria-label="GitHub">
+        <a class="about-icon-link" href="https://github.com/mgpcamargo/cmip7-area-explorer" target="_blank" rel="noopener noreferrer" title="GitHub Repository" aria-label="GitHub">
           <svg class="about-icon" viewBox="0 0 24 24" aria-hidden="true">
             <path fill="currentColor" d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
           </svg>
@@ -407,7 +478,7 @@
       </div>
     </footer>
 
-  </div>
+  </main>
 
   <script src="data/world-50m.js"></script>
   <script src="src/app.js"></script>

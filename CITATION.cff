@@ -1,0 +1,28 @@
+cff-version: 1.2.0
+title: "CMIP7 Area Explorer & ESGF-NG Web Portal"
+message: "If you use CMIP7 Area Explorer in your research, coursework, or workflows, please cite it using the metadata below."
+type: software
+authors:
+  - family-names: "Camargo"
+    given-names: "Marcelo G. P."
+    affiliation: "Department of Atmospheric Sciences, Institute of Astronomy, Geophysics and Atmospheric Sciences, University of São Paulo (IAG/USP)"
+    email: "marcelo.garcia.camargo@usp.br"
+repository-code: "https://github.com/mgpcamargo/cmip7-area-explorer"
+url: "https://mgpcamargo.github.io/cmip7-area-explorer/"
+abstract: >-
+  Open-source interactive cartographic web application and CLI utility to delimit
+  geographic bounding boxes, diagnose eligible CMIP7 realms and branded variables
+  (MIP-DRS7), query live ESGF-NG STAC catalogs, inspect NetCDF holdings, and
+  generate reproducible regional subsetting scripts using intake-esgf, xarray, and CDO.
+keywords:
+  - CMIP7
+  - ESGF-NG
+  - STAC
+  - climate-models
+  - meteorology
+  - xarray
+  - intake-esgf
+  - cartography
+license: MIT
+version: "1.1.0"
+date-released: "2026-11-24"
