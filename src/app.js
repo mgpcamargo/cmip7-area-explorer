@@ -44,6 +44,18 @@
   const MAX_TILE_CACHE = 280;
   let redrawScheduled = false;
 
+  function tr(key, vars) {
+    return window.CMIP7_I18N ? window.CMIP7_I18N.t(key, vars) : key;
+  }
+
+  function trRegion(name) {
+    return window.CMIP7_I18N ? window.CMIP7_I18N.translateRegionName(name) : name;
+  }
+
+  function trVarDesc(v) {
+    return window.CMIP7_I18N ? window.CMIP7_I18N.translateVarDesc(v.rowKey, v.desc) : v.desc;
+  }
+
   const state = {
     latMin: -56,
     latMax: 13,
@@ -296,9 +308,9 @@
     const hasOcean = oceanCount > 0;
     const hasPolar = Math.abs(state.latMax) >= 58 || Math.abs(state.latMin) >= 58;
 
-    let label = "Mixed (Land + Ocean)";
-    if (hasLand && !hasOcean) label = "Land-only";
-    else if (!hasLand && hasOcean) label = "Ocean-only";
+    let label = tr("surfaceMixed");
+    if (hasLand && !hasOcean) label = tr("surfaceLand");
+    else if (!hasLand && hasOcean) label = tr("surfaceOcean");
 
     const countriesList = Array.from(hitCountries).sort();
     if (countriesList.length > 7 && countriesList.includes(state.regionName)) {
@@ -315,15 +327,15 @@
 
     document.getElementById("diag-area-pct").textContent = areaPct.toFixed(1) + "%";
     document.getElementById("diag-surface").textContent = label;
-    document.getElementById("region-label").textContent = state.regionName;
+    document.getElementById("region-label").textContent = trRegion(state.regionName);
 
     const countriesEl = document.getElementById("diag-countries");
     if (countriesList.length === 0) {
-      countriesEl.textContent = "Open Ocean (international waters)";
+      countriesEl.textContent = tr("openOcean");
     } else if (countriesList.length <= 7) {
       countriesEl.textContent = countriesList.join(", ");
     } else {
-      countriesEl.textContent = countriesList.slice(0, 7).join(", ") + ` (+${countriesList.length - 7} more)`;
+      countriesEl.textContent = countriesList.slice(0, 7).join(", ") + ` (${tr("moreCount", { n: countriesList.length - 7 })})`;
     }
 
     const realmsEl = document.getElementById("diag-realms");
@@ -339,7 +351,7 @@
     ).join("");
 
     const twoPathTitle = document.getElementById("two-path-title");
-    if (twoPathTitle) twoPathTitle.textContent = `Two ways to get this ${areaPct.toFixed(1)}% area:`;
+    if (twoPathTitle) twoPathTitle.textContent = tr("twoPathTitle", { pct: areaPct.toFixed(1) });
   }
 
   // --- Map Rendering ---
@@ -581,7 +593,7 @@
     const attribEl = document.getElementById("map-attrib");
     if (!attribEl) return;
     const raster = RASTER_LAYERS[state.basemap];
-    attribEl.textContent = raster ? raster.attrib : "Natural Earth 1:50m (Public Domain)";
+    attribEl.textContent = raster ? tr("attribSatellite") : tr("attribAtlas");
   }
 
   function drawMap() {
@@ -891,7 +903,7 @@
       state.hoverCountry = country;
 
       const hud = document.getElementById("map-hud");
-      hud.textContent = `Lat: ${geo.lat.toFixed(1)}°, Lon: ${geo.lon.toFixed(1)}°` + (country ? ` · ${country.n} (2× click to select)` : " · Ocean");
+      hud.textContent = `Lat: ${geo.lat.toFixed(1)}°, Lon: ${geo.lon.toFixed(1)}°` + (country ? ` · ${country.n} (${tr("hudDoubleClick")})` : ` · ${tr("hudOcean")}`);
 
       const handle = findHandleAt(pos.x, pos.y);
       if (state.toolMode === "pan" || e.shiftKey) canvas.style.cursor = "grab";
@@ -1068,10 +1080,10 @@
   }
 
   function isVarEligible(v) {
-    if (v.domain === "seaIce") return (state.surface.hasOcean && state.surface.hasPolar) ? { ok: true, msg: "Available (polar sea)" } : { ok: false, msg: "Low/no sea ice" };
-    if (v.mask === "lnd") return state.surface.hasLand ? { ok: true, msg: "Available (land)" } : { ok: false, msg: "No land in box" };
-    if (v.mask === "sea") return state.surface.hasOcean ? { ok: true, msg: "Available (ocean)" } : { ok: false, msg: "No ocean in box" };
-    return { ok: true, msg: "Available" };
+    if (v.domain === "seaIce") return (state.surface.hasOcean && state.surface.hasPolar) ? { ok: true, msg: tr("eligPolarOk") } : { ok: false, msg: tr("eligPolarNo") };
+    if (v.mask === "lnd") return state.surface.hasLand ? { ok: true, msg: tr("eligLandOk") } : { ok: false, msg: tr("eligLandNo") };
+    if (v.mask === "sea") return state.surface.hasOcean ? { ok: true, msg: tr("eligOceanOk") } : { ok: false, msg: tr("eligOceanNo") };
+    return { ok: true, msg: tr("eligOk") };
   }
 
   function renderVariablesTable() {
@@ -1086,7 +1098,7 @@
         <tr onclick="selectVariable('${v.rowKey}')" class="${isSelected ? "selected" : ""}">
           <td class="mono"><strong>${v.id}</strong></td>
           <td class="mono">${v.branded}</td>
-          <td>${v.desc}</td>
+          <td>${trVarDesc(v)}</td>
           <td class="muted">${v.domain} (${v.mask})</td>
           <td class="muted">${v.freq}</td>
           <td class="mono muted">${v.cmip6}</td>
@@ -1278,7 +1290,7 @@ esgpull download
 
     const models = Object.entries(modelCounts).sort((a, b) => b[1] - a[1]);
     const pills = [
-      `<button class="sm ${state.modelFilter === "all" ? "active" : ""}" onclick="setLiveModelFilter('all')">All loaded (${state.liveItems.length})</button>`,
+      `<button class="sm ${state.modelFilter === "all" ? "active" : ""}" onclick="setLiveModelFilter('all')">${tr("allLoaded", { n: state.liveItems.length })}</button>`,
       ...models.map(([m, cnt]) =>
         `<button class="sm ${state.modelFilter === m ? "active" : ""}" onclick="setLiveModelFilter('${m}')">${m} (${cnt})</button>`
       )
@@ -1286,7 +1298,7 @@ esgpull download
     pillsEl.innerHTML = pills.join("");
 
     const prevFreq = state.freqFilter;
-    freqEl.innerHTML = `<option value="all">All freqs</option>` +
+    freqEl.innerHTML = `<option value="all">${tr("allFreqs")}</option>` +
       Array.from(freqs).sort().map(f => `<option value="${f}">${f}</option>`).join("");
     freqEl.value = freqs.has(prevFreq) ? prevFreq : "all";
     state.freqFilter = freqEl.value;
@@ -1309,9 +1321,9 @@ esgpull download
     if (!hasNext) return;
 
     const nextSize = (state.nextLink.body && state.nextLink.body.limit) || 50;
-    summaryEl.textContent = `Loaded ${state.liveItems.length} of ${state.totalMatched} matched datasets`;
-    moreBtn.textContent = state.loadingMore ? "Loading..." : `Load Next ${Math.min(nextSize, remaining)}`;
-    allBtn.textContent = state.loadingMore ? "Loading..." : `Load All Remaining (${remaining})`;
+    summaryEl.textContent = tr("paginationSummary", { loaded: state.liveItems.length, total: state.totalMatched });
+    moreBtn.textContent = state.loadingMore ? tr("loadingText") : tr("btnLoadNext", { n: Math.min(nextSize, remaining) });
+    allBtn.textContent = state.loadingMore ? tr("loadingText") : tr("btnLoadAllRem", { n: remaining });
     moreBtn.disabled = state.loadingMore;
     allBtn.disabled = state.loadingMore;
   }
@@ -1337,7 +1349,7 @@ esgpull download
     }
 
     if (!entries.length) {
-      tbody.innerHTML = `<tr><td colspan="8" class="muted">No loaded datasets match the current filter.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" class="muted">${tr("noMatchFilter")}</td></tr>`;
       return;
     }
 
@@ -1358,15 +1370,14 @@ esgpull download
           <td class="mono">${p["cmip7:frequency"] || "—"} · ${p["cmip7:grid_label"] || "—"}</td>
           <td class="mono">${formatYearRange(p)}</td>
           <td class="mono">${formatSize(p.size)}</td>
-          <td><button class="sm" onclick="event.stopPropagation(); toggleFilesRow(${origIdx})">${expanded ? "Hide" : "Files"} (${assets.length})</button></td>
+          <td><button class="sm" onclick="event.stopPropagation(); toggleFilesRow(${origIdx})">${expanded ? tr("btnHide") : tr("btnFiles")} (${assets.length})</button></td>
         </tr>
       `;
       if (expanded) {
         const cdoCmd = getCdoCommand();
         const drawerBanner = `
           <div class="drawer-note">
-            <strong style="color:var(--fg);">Official ESGF mirrors only store full-globe files (<span class="mono">_glb_</span>).</strong>
-            To get only your box (<span class="mono">${state.latMin}°..${state.latMax}°N, ${state.lonMin}°..${state.lonMax}°E</span>), export and run the Python script in Step 3 on your machine, or crop these files after downloading.
+            ${tr("drawerNote", { latMin: state.latMin, latMax: state.latMax, lonMin: state.lonMin, lonMax: state.lonMax })}
           </div>
         `;
         const filesHtml = assets.map(([fname, a]) => {
@@ -1376,20 +1387,20 @@ esgpull download
             <div class="file-item">
               <span class="mono small">${fname}</span>
               <div class="btn-group">
-                <span class="pill">Full Globe</span>
+                <span class="pill">${tr("fullGlobePill")}</span>
                 <span class="muted small mono">${fSize}</span>
-                <a class="small" href="${href}" target="_blank" rel="noopener noreferrer">Download Global .nc ↗</a>
+                <a class="small" href="${href}" target="_blank" rel="noopener noreferrer">${tr("downloadGlobalNc")}</a>
               </div>
             </div>
           `;
         }).join("");
         const cdoBar = assets.length ? `
           <div class="file-item">
-            <span class="mono small muted">Crop after download: <span style="color:var(--fg);">${cdoCmd}</span></span>
-            <button class="sm" onclick="event.stopPropagation(); copyCdoCommand(this)">Copy CDO</button>
+            <span class="mono small muted">${tr("cropAfterDownload")} <span style="color:var(--fg);">${cdoCmd}</span></span>
+            <button class="sm" onclick="event.stopPropagation(); copyCdoCommand(this)">${tr("btnCopyCdo")}</button>
           </div>
         ` : "";
-        html += `<tr class="files-row"><td colspan="8"><div class="file-list">${drawerBanner}${filesHtml || '<span class="muted small">No HTTP file assets listed.</span>'}${cdoBar}</div></td></tr>`;
+        html += `<tr class="files-row"><td colspan="8"><div class="file-list">${drawerBanner}${filesHtml || `<span class="muted small">${tr("noHttpAssets")}</span>`}${cdoBar}</div></td></tr>`;
       }
       return html;
     }).join("");
@@ -1432,7 +1443,7 @@ esgpull download
       totalBytes += (it.properties && it.properties.size) || 0;
     }
     document.getElementById("cart-summary").textContent =
-      `${items.length} dataset(s) · ${fileCount} global NetCDF file(s) · ${formatSize(totalBytes)}`;
+      tr("cartSummary", { n: items.length, files: fileCount, size: formatSize(totalBytes) });
   }
 
   function previewItemFootprint(idx) {
@@ -1528,10 +1539,10 @@ esgpull download
     const v = state.selectedVar;
     const exp = document.getElementById("select-experiment").value;
     if (state.liveItems.length === 0) {
-      statusEl.innerHTML = `<span class="warn-text">0 live datasets found</span> for <span class="mono">${v.branded}</span> in <span class="mono">${exp}</span> (try <span class="mono">scen7-vl</span>, <span class="mono">scen7-h</span>, <span class="mono">historical</span>, or <span class="mono">esm-hist</span>).`;
+      statusEl.innerHTML = tr("statusZero", { branded: v.branded, exp });
     } else {
       const host = state.activeEndpoint ? new URL(state.activeEndpoint).host : "ESGF-NG";
-      statusEl.innerHTML = `<span class="ok-text">${state.totalMatched} datasets matched</span> via <span class="mono">${host}</span> (showing ${state.liveItems.length}).`;
+      statusEl.innerHTML = tr("statusMatched", { total: state.totalMatched, host, shown: state.liveItems.length });
     }
   }
 
@@ -1561,7 +1572,7 @@ esgpull download
       await fetchStacNextPage();
       updateEsgfStatusBanner();
     } catch (err) {
-      document.getElementById("live-esgf-status").innerHTML = `<span class="warn-text">Error loading next page (${err.message}).</span>`;
+      document.getElementById("live-esgf-status").innerHTML = tr("statusLoadErr", { msg: err.message });
     } finally {
       state.loadingMore = false;
       renderLiveDatasets();
@@ -1577,13 +1588,13 @@ esgpull download
     try {
       while (state.nextLink && pages < 20 && state.liveItems.length < 2000) {
         pages++;
-        statusEl.innerHTML = `<span class="muted">Loading ${state.liveItems.length} / ${state.totalMatched} datasets...</span>`;
+        statusEl.innerHTML = tr("statusLoadingMore", { loaded: state.liveItems.length, total: state.totalMatched });
         await fetchStacNextPage();
         renderLiveDatasets();
       }
       updateEsgfStatusBanner();
     } catch (err) {
-      statusEl.innerHTML = `<span class="warn-text">Stopped loading all pages (${err.message}). Showing ${state.liveItems.length}.</span>`;
+      statusEl.innerHTML = tr("statusStoppedErr", { msg: err.message, shown: state.liveItems.length });
     } finally {
       state.loadingMore = false;
       renderLiveDatasets();
@@ -1606,7 +1617,7 @@ esgpull download
     if (searchEl) searchEl.value = "";
     state.nextLink = null;
 
-    statusEl.innerHTML = `<span class="muted">Querying ESGF-NG STAC for <span class="mono">${v.branded}</span> (${exp})...</span>`;
+    statusEl.innerHTML = tr("statusQuerying", { branded: v.branded, exp });
 
     const args = [
       { op: "=", args: [{ property: "latest" }, "true"] },
@@ -1654,7 +1665,7 @@ esgpull download
     state.totalMatched = 0;
     state.nextLink = null;
     renderLiveDatasets();
-    statusEl.innerHTML = `<span class="warn-text">Live browser fetch unavailable (${lastErr ? lastErr.message : "network"}).</span> Use <span class="mono">scripts/cmip7_check_area.py</span> in your terminal.`;
+    statusEl.innerHTML = tr("statusFetchUnavail", { msg: lastErr ? lastErr.message : "network" });
   }
 
   function maybeAutoQuery() {
@@ -1755,7 +1766,7 @@ esgpull download
     const btn = document.getElementById("theme-toggle-btn");
     if (!btn) return;
     const isLight = document.documentElement.classList.contains("light");
-    const label = isLight ? "Switch to Dark Mode" : "Switch to Light Mode";
+    const label = isLight ? tr("switchToDark") : tr("switchToLight");
     btn.innerHTML = isLight ? THEME_ICONS.moon : THEME_ICONS.sun;
     btn.title = label;
     btn.setAttribute("aria-label", label);
@@ -1774,18 +1785,30 @@ esgpull download
     if (!text || !navigator.clipboard) return;
     navigator.clipboard.writeText(text).then(() => {
       if (!btn) return;
-      btn.textContent = copiedLabel || "Copied!";
+      btn.textContent = copiedLabel || tr("btnCopied");
       setTimeout(() => { btn.textContent = defaultLabel; }, 1500);
     });
   }
 
   function copyCode() {
-    copyWithFeedback(document.getElementById("code-output").textContent, document.getElementById("copy-btn"), "Copy", "Copied!");
+    copyWithFeedback(document.getElementById("code-output").textContent, document.getElementById("copy-btn"), tr("btnCopy"), tr("btnCopied"));
   }
 
   function copyCdoCommand(btn) {
-    copyWithFeedback(getCdoCommand(), btn, "Copy CDO", "Copied!");
+    copyWithFeedback(getCdoCommand(), btn, tr("btnCopyCdo"), tr("btnCopied"));
   }
+
+  window.__onLanguageChanged = function () {
+    syncThemeButtonLabel();
+    updateMapAttribution();
+    analyzeSelectedArea();
+    renderVariablesTable();
+    renderLiveDatasets();
+    updateCartBar();
+    if (state.activeEndpoint || state.liveItems.length > 0) {
+      updateEsgfStatusBanner();
+    }
+  };
 
   function refreshAll() {
     drawMap();
@@ -1836,6 +1859,7 @@ esgpull download
     else if (savedTheme === "dark") document.documentElement.classList.remove("light");
   } catch (_) {}
 
+  if (window.CMIP7_I18N) window.CMIP7_I18N.applyDomTranslations();
   loadStateFromHash();
   syncInputs();
   syncThemeButtonLabel();

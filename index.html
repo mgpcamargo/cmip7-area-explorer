@@ -26,7 +26,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles/main.css?v=8" />
+  <link rel="stylesheet" href="styles/main.css?v=9" />
 </head>
 <body>
 
@@ -39,32 +39,41 @@
         </a>
         <div class="brand-copy">
           <h1 class="sr-only">CMIP7 Area Explorer</h1>
-          <p class="masthead-subtitle">
+          <p class="masthead-subtitle" data-i18n="subtitle">
             Sort and download state-of-the-art climate projection datasets.
           </p>
         </div>
       </div>
 
-      <nav class="masthead-nav" aria-label="Primary actions">
-        <div class="seg-group masthead-tabs">
-          <button id="tab-btn-explorer" class="active" onclick="switchMainTab('explorer')">
-            <svg class="nav-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="10"></circle>
-              <line x1="2" y1="12" x2="22" y2="12"></line>
-              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-            </svg>
-            <span>Area Explorer</span>
-          </button>
-          <button id="tab-btn-guides" onclick="switchMainTab('guides')">
-            <svg class="nav-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
-              <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
-            </svg>
-            <span>Guides</span>
-          </button>
+      <div class="masthead-right">
+        <div class="lang-switcher" role="group" aria-label="Language">
+          <button id="lang-btn-en" class="lang-btn active" onclick="setLanguage('en')" aria-pressed="true">English</button>
+          <span class="lang-sep" aria-hidden="true">|</span>
+          <button id="lang-btn-pt" class="lang-btn" onclick="setLanguage('pt')" aria-pressed="false">Português</button>
+          <span class="lang-sep" aria-hidden="true">|</span>
+          <button id="lang-btn-es" class="lang-btn" onclick="setLanguage('es')" aria-pressed="false">Español</button>
         </div>
-        <button id="theme-toggle-btn" class="masthead-btn theme-icon-btn" onclick="toggleTheme()" title="Switch to Dark Mode" aria-label="Switch to Dark Mode"></button>
-      </nav>
+        <nav class="masthead-nav" aria-label="Primary actions">
+          <div class="seg-group masthead-tabs">
+            <button id="tab-btn-explorer" class="active" onclick="switchMainTab('explorer')">
+              <svg class="nav-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="2" y1="12" x2="22" y2="12"></line>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+              </svg>
+              <span data-i18n="navExplorer">Area Explorer</span>
+            </button>
+            <button id="tab-btn-guides" onclick="switchMainTab('guides')">
+              <svg class="nav-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+              </svg>
+              <span data-i18n="navGuides">Guides</span>
+            </button>
+          </div>
+          <button id="theme-toggle-btn" class="masthead-btn theme-icon-btn" onclick="toggleTheme()" title="Switch to Dark Mode" aria-label="Switch to Dark Mode"></button>
+        </nav>
+      </div>
     </div>
   </header>
 
@@ -80,18 +89,18 @@
           <div class="map-toolbar">
             <div class="section-heading">
               <span class="step-num mono">01</span>
-              <h2>Select Geographic Area</h2>
+              <h2 data-i18n="step01Title">Select Geographic Area</h2>
             </div>
             <div class="toolbar-controls">
               <div class="seg-group" role="group" aria-label="Map projection">
-                <button id="proj-ne" class="sm active" onclick="setProjection('naturalEarth')">Natural Earth</button>
-                <button id="proj-eq" class="sm" onclick="setProjection('equirect')">Equirectangular</button>
+                <button id="proj-ne" class="sm active" onclick="setProjection('naturalEarth')" data-i18n="projNE">Natural Earth</button>
+                <button id="proj-eq" class="sm" onclick="setProjection('equirect')" data-i18n="projEq">Equirectangular</button>
               </div>
               <div class="seg-group" role="group" aria-label="Pointer mode">
-                <button id="tool-draw" class="sm active" onclick="setToolMode('draw')">Draw Box</button>
-                <button id="tool-pan" class="sm" onclick="setToolMode('pan')">Pan</button>
+                <button id="tool-draw" class="sm active" onclick="setToolMode('draw')" data-i18n="toolDraw">Draw Box</button>
+                <button id="tool-pan" class="sm" onclick="setToolMode('pan')" data-i18n="toolPan">Pan</button>
               </div>
-              <button class="sm" onclick="resetGlobal()" title="Select full globe (-90..90, -180..180)">Global</button>
+              <button class="sm" onclick="resetGlobal()" title="Select full globe (-90..90, -180..180)" data-i18n="btnGlobal" data-i18n-title="btnGlobalTitle">Global</button>
             </div>
           </div>
 
@@ -100,11 +109,11 @@
             <div id="map-hud" class="map-hud mono">Lat: — , Lon: —</div>
             <div id="map-attrib" class="map-attrib">Natural Earth 1:50m (Public Domain)</div>
             <div class="map-zoom-controls">
-              <button onclick="zoomStep(1)" title="Zoom in" aria-label="Zoom in">+</button>
-              <button onclick="zoomStep(-1)" title="Zoom out" aria-label="Zoom out">−</button>
-              <button onclick="resetView()" title="Reset zoom &amp; pan" aria-label="Reset zoom and pan">⟲</button>
+              <button onclick="zoomStep(1)" title="Zoom in" aria-label="Zoom in" data-i18n-title="zoomIn">+</button>
+              <button onclick="zoomStep(-1)" title="Zoom out" aria-label="Zoom out" data-i18n-title="zoomOut">−</button>
+              <button onclick="resetView()" title="Reset zoom &amp; pan" aria-label="Reset zoom and pan" data-i18n-title="zoomReset">⟲</button>
               <div class="map-ctrl-sep"></div>
-              <button id="layers-toggle-btn" class="layers-btn" onclick="toggleLayersMenu(event)" title="Map layers (Atlas &amp; Satellite)" aria-label="Map layers" aria-expanded="false">
+              <button id="layers-toggle-btn" class="layers-btn" onclick="toggleLayersMenu(event)" title="Map layers (Atlas &amp; Satellite)" aria-label="Map layers" aria-expanded="false" data-i18n-title="layersTitle">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
                   <polyline points="2 12 12 17 22 12"></polyline>
@@ -115,96 +124,96 @@
 
             <!-- Google-Maps-style Layers Popover -->
             <div id="map-layers-popover" class="map-layers-popover hidden" role="dialog" aria-label="Map Layers">
-              <div class="layers-section-label">Map Type</div>
+              <div class="layers-section-label" data-i18n="mapType">Map Type</div>
               <div class="layers-grid">
                 <button id="layer-opt-atlas" class="layer-option active" onclick="setBasemap('atlas')">
                   <span class="layer-swatch swatch-atlas" aria-hidden="true"></span>
-                  <span class="layer-name">Atlas</span>
+                  <span class="layer-name" data-i18n="layerAtlas">Atlas</span>
                 </button>
                 <button id="layer-opt-satellite" class="layer-option" onclick="setBasemap('satellite')">
                   <span class="layer-swatch swatch-satellite" aria-hidden="true"></span>
-                  <span class="layer-name">Satellite</span>
+                  <span class="layer-name" data-i18n="layerSatellite">Satellite</span>
                 </button>
               </div>
               <div class="layers-divider"></div>
-              <div class="layers-section-label">Map Details</div>
+              <div class="layers-section-label" data-i18n="mapDetails">Map Details</div>
               <div class="layers-toggles">
                 <label class="layer-check">
                   <input id="chk-map-borders" type="checkbox" checked onchange="toggleMapOverlay('borders', this.checked)" />
-                  <span>Borders &amp; Labels</span>
+                  <span data-i18n="bordersLabels">Borders &amp; Labels</span>
                 </label>
                 <label class="layer-check">
                   <input id="chk-map-grid" type="checkbox" checked onchange="toggleMapOverlay('grid', this.checked)" />
-                  <span>Lat/Lon Grid</span>
+                  <span data-i18n="latLonGrid">Lat/Lon Grid</span>
                 </label>
               </div>
             </div>
           </div>
 
           <div class="presets">
-            <span class="presets-label">Regions:</span>
-            <button class="sm preset-btn" onclick="applyPreset('South America', -56, 13, -82, -34)">South America</button>
-            <button class="sm preset-btn" onclick="applyPreset('Amazon Basin', -20, 6, -79, -48)">Amazon Basin</button>
-            <button class="sm preset-btn" onclick="applyPreset('North America', 15, 72, -168, -52)">North America</button>
-            <button class="sm preset-btn" onclick="applyPreset('Europe', 35, 71, -12, 40)">Europe</button>
-            <button class="sm preset-btn" onclick="applyPreset('Mediterranean', 30, 46, -6, 37)">Mediterranean</button>
-            <button class="sm preset-btn" onclick="applyPreset('Africa', -35, 37, -18, 52)">Africa</button>
-            <button class="sm preset-btn" onclick="applyPreset('East Asia', 18, 54, 100, 146)">East Asia</button>
-            <button class="sm preset-btn" onclick="applyPreset('Australia &amp; NZ', -48, -10, 112, 179)">Australia &amp; NZ</button>
-            <button class="sm preset-btn" onclick="applyPreset('Niño 3.4 (ENSO)', -5, 5, -170, -120)">Niño 3.4</button>
-            <button class="sm preset-btn" onclick="applyPreset('North Atlantic', 20, 65, -75, -5)">North Atlantic</button>
-            <button class="sm preset-btn" onclick="applyPreset('Arctic', 66, 90, -180, 180)">Arctic</button>
+            <span class="presets-label" data-i18n="regionsLabel">Regions:</span>
+            <button class="sm preset-btn" onclick="applyPreset('South America', -56, 13, -82, -34)" data-i18n="presetSouthAmerica">South America</button>
+            <button class="sm preset-btn" onclick="applyPreset('Amazon Basin', -20, 6, -79, -48)" data-i18n="presetAmazon">Amazon Basin</button>
+            <button class="sm preset-btn" onclick="applyPreset('North America', 15, 72, -168, -52)" data-i18n="presetNorthAmerica">North America</button>
+            <button class="sm preset-btn" onclick="applyPreset('Europe', 35, 71, -12, 40)" data-i18n="presetEurope">Europe</button>
+            <button class="sm preset-btn" onclick="applyPreset('Mediterranean', 30, 46, -6, 37)" data-i18n="presetMediterranean">Mediterranean</button>
+            <button class="sm preset-btn" onclick="applyPreset('Africa', -35, 37, -18, 52)" data-i18n="presetAfrica">Africa</button>
+            <button class="sm preset-btn" onclick="applyPreset('East Asia', 18, 54, 100, 146)" data-i18n="presetEastAsia">East Asia</button>
+            <button class="sm preset-btn" onclick="applyPreset('Australia &amp; NZ', -48, -10, 112, 179)" data-i18n="presetAustraliaNZ">Australia &amp; NZ</button>
+            <button class="sm preset-btn" onclick="applyPreset('Niño 3.4 (ENSO)', -5, 5, -170, -120)" data-i18n="presetNino34">Niño 3.4</button>
+            <button class="sm preset-btn" onclick="applyPreset('North Atlantic', 20, 65, -75, -5)" data-i18n="presetNorthAtlantic">North Atlantic</button>
+            <button class="sm preset-btn" onclick="applyPreset('Arctic', 66, 90, -180, 180)" data-i18n="presetArctic">Arctic</button>
           </div>
         </section>
 
         <!-- Area Bounds & Diagnostics -->
         <aside class="card bounds-card">
           <div class="bounds-header">
-            <h2>Area Bounds &amp; Diagnostics</h2>
+            <h2 data-i18n="boundsHeading">Area Bounds &amp; Diagnostics</h2>
             <span id="region-label" class="region-tag mono">South America</span>
           </div>
 
           <div class="grid-2">
             <div class="field">
-              <label for="input-lat-min">Lat Min (°N)</label>
+              <label for="input-lat-min" data-i18n="latMin">Lat Min (°N)</label>
               <input id="input-lat-min" class="mono" type="number" min="-90" max="90" step="0.5" value="-56" onchange="onManualCoordChange()" />
             </div>
             <div class="field">
-              <label for="input-lat-max">Lat Max (°N)</label>
+              <label for="input-lat-max" data-i18n="latMax">Lat Max (°N)</label>
               <input id="input-lat-max" class="mono" type="number" min="-90" max="90" step="0.5" value="13" onchange="onManualCoordChange()" />
             </div>
             <div class="field">
-              <label for="input-lon-min">Lon Min (°E)</label>
+              <label for="input-lon-min" data-i18n="lonMin">Lon Min (°E)</label>
               <input id="input-lon-min" class="mono" type="number" min="-180" max="180" step="0.5" value="-82" onchange="onManualCoordChange()" />
             </div>
             <div class="field">
-              <label for="input-lon-max">Lon Max (°E)</label>
+              <label for="input-lon-max" data-i18n="lonMax">Lon Max (°E)</label>
               <input id="input-lon-max" class="mono" type="number" min="-180" max="180" step="0.5" value="-34" onchange="onManualCoordChange()" />
             </div>
           </div>
 
           <div>
-            <span class="field-group-label">CMIP Longitude Convention (Python / xarray)</span>
+            <span class="field-group-label" data-i18n="lonConvention">CMIP Longitude Convention (Python / xarray)</span>
             <div class="seg-group full-seg">
-              <button id="lon-mode-180" onclick="setLonMode('180')">-180° to 180°</button>
-              <button id="lon-mode-360" class="active" onclick="setLonMode('360')">0° to 360° (CMIP)</button>
+              <button id="lon-mode-180" onclick="setLonMode('180')" data-i18n="lonMode180">-180° to 180°</button>
+              <button id="lon-mode-360" class="active" onclick="setLonMode('360')" data-i18n="lonMode360">0° to 360° (CMIP)</button>
             </div>
           </div>
 
           <div class="diag-box">
-            <div class="diag-heading">Regional Eligibility Summary</div>
+            <div class="diag-heading" data-i18n="eligibilityHeading">Regional Eligibility Summary</div>
             <div class="grid-2">
               <div class="stat-tile">
-                <div class="muted small">Global Area %</div>
+                <div class="muted small" data-i18n="globalAreaPct">Global Area %</div>
                 <div id="diag-area-pct" class="stat-val mono">—</div>
               </div>
               <div class="stat-tile">
-                <div class="muted small">Surface Mask</div>
+                <div class="muted small" data-i18n="surfaceMask">Surface Mask</div>
                 <div id="diag-surface" class="stat-val">—</div>
               </div>
             </div>
             <div class="small countries-line">
-              <span class="muted">Intersecting territories: </span>
+              <span class="muted" data-i18n="intersectingLabel">Intersecting territories: </span>
               <span id="diag-countries">—</span>
             </div>
             <div id="diag-realms" class="realm-pills"></div>
@@ -214,15 +223,15 @@
 
       <!-- Full-width Two-Path Guidance Strip -->
       <section class="card two-path-banner">
-        <div id="two-path-title" class="two-path-heading">Two ways to get this area:</div>
+        <div id="two-path-title" class="two-path-heading" data-i18n="twoPathTitleDefault">Two ways to get this area:</div>
         <div class="two-path-grid">
           <div class="path-card path-recommended">
-            <div class="path-title">A. Regional subset output <span class="rec-tag">Recommended</span></div>
-            <div class="muted small">Export and run the Step 03 Python script on your machine to download a cropped <span class="mono">.nc</span> file for your region.</div>
+            <div class="path-title" data-i18n-html="pathATitle">A. Regional subset output <span class="rec-tag">Recommended</span></div>
+            <div class="muted small" data-i18n-html="pathADesc">Export and run the Step 03 Python script on your machine to download a cropped <span class="mono">.nc</span> file for your region.</div>
           </div>
           <div class="path-card">
-            <div class="path-title">B. Full-globe NetCDF links / wget</div>
-            <div class="muted small">Official ESGF mirrors host global (<span class="mono">_glb_</span>) files. Download them directly or via <span class="mono">wget</span>, then crop locally with <span class="mono">cdo sellonlatbox</span>.</div>
+            <div class="path-title" data-i18n="pathBTitle">B. Full-globe NetCDF links / wget</div>
+            <div class="muted small" data-i18n-html="pathBDesc">Official ESGF mirrors host global (<span class="mono">_glb_</span>) files. Download them directly or via <span class="mono">wget</span>, then crop locally with <span class="mono">cdo sellonlatbox</span>.</div>
           </div>
         </div>
       </section>
@@ -233,40 +242,40 @@
           <div>
             <div class="section-heading">
               <span class="step-num mono">02</span>
-              <h2>Select Variable &amp; Query Live ESGF-NG Catalog</h2>
+              <h2 data-i18n="step02Title">Select Variable &amp; Query Live ESGF-NG Catalog</h2>
             </div>
-            <p class="muted small section-desc">Choose a CMIP7 branded variable and experiment to query live STAC holdings and NetCDF assets.</p>
+            <p class="muted small section-desc" data-i18n="step02Desc">Choose a CMIP7 branded variable and experiment to query live STAC holdings and NetCDF assets.</p>
           </div>
           <div class="btn-group">
             <select id="filter-domain" onchange="renderVariablesTable()" aria-label="Filter by realm">
-              <option value="all">All Realms / Domains</option>
-              <option value="atmos">Atmosphere (atmos)</option>
-              <option value="ocean">Ocean (ocean)</option>
-              <option value="land">Land (land)</option>
-              <option value="seaIce">Sea Ice (seaIce)</option>
-              <option value="ocnBgchem">Ocean Biogeochem (ocnBgchem)</option>
+              <option value="all" data-i18n="domainAll">All Realms / Domains</option>
+              <option value="atmos" data-i18n="domainAtmos">Atmosphere (atmos)</option>
+              <option value="ocean" data-i18n="domainOcean">Ocean (ocean)</option>
+              <option value="land" data-i18n="domainLand">Land (land)</option>
+              <option value="seaIce" data-i18n="domainSeaIce">Sea Ice (seaIce)</option>
+              <option value="ocnBgchem" data-i18n="domainOcnBgchem">Ocean Biogeochem (ocnBgchem)</option>
             </select>
             <select id="select-experiment" onchange="onFilterChanged()" aria-label="Select CMIP7 experiment">
-              <option value="historical">historical (1850–2021)</option>
-              <option value="esm-hist">esm-hist (Emissions-driven)</option>
-              <option value="scen7-vl">scen7-vl (ScenarioMIP Very Low)</option>
-              <option value="scen7-m">scen7-m (ScenarioMIP Medium)</option>
-              <option value="scen7-h">scen7-h (ScenarioMIP High)</option>
-              <option value="amip">amip (Atmos-only)</option>
-              <option value="piControl">piControl (Pre-industrial)</option>
-              <option value="1pctCO2">1pctCO2 (Idealized)</option>
-              <option value="abrupt-4xCO2">abrupt-4xCO2 (Idealized)</option>
+              <option value="historical" data-i18n="expHistorical">historical (1850–2021)</option>
+              <option value="esm-hist" data-i18n="expEsmHist">esm-hist (Emissions-driven)</option>
+              <option value="scen7-vl" data-i18n="expScenVl">scen7-vl (ScenarioMIP Very Low)</option>
+              <option value="scen7-m" data-i18n="expScenM">scen7-m (ScenarioMIP Medium)</option>
+              <option value="scen7-h" data-i18n="expScenH">scen7-h (ScenarioMIP High)</option>
+              <option value="amip" data-i18n="expAmip">amip (Atmos-only)</option>
+              <option value="piControl" data-i18n="expPiControl">piControl (Pre-industrial)</option>
+              <option value="1pctCO2" data-i18n="exp1pct">1pctCO2 (Idealized)</option>
+              <option value="abrupt-4xCO2" data-i18n="expAbrupt">abrupt-4xCO2 (Idealized)</option>
             </select>
             <select id="select-grid" onchange="onFilterChanged()" aria-label="Select CMIP7 grid label">
-              <option value="any">Any CMIP7 grid_label</option>
-              <option value="g110">g110 (Atmos/Land standard)</option>
-              <option value="g126">g126 (Ocean standard)</option>
-              <option value="g108">g108 (Atmos vector/wind)</option>
-              <option value="g124">g124 (Ocean vector)</option>
+              <option value="any" data-i18n="gridAny">Any CMIP7 grid_label</option>
+              <option value="g110" data-i18n="gridG110">g110 (Atmos/Land standard)</option>
+              <option value="g126" data-i18n="gridG126">g126 (Ocean standard)</option>
+              <option value="g108" data-i18n="gridG108">g108 (Atmos vector/wind)</option>
+              <option value="g124" data-i18n="gridG124">g124 (Ocean vector)</option>
               <option value="g216">g216</option>
             </select>
-            <input id="input-time-start" class="mono date-input" type="text" value="1980-01-01" onchange="updateGeneratedCode()" title="Start date (YYYY-MM-DD)" aria-label="Start date" />
-            <input id="input-time-end" class="mono date-input" type="text" value="2020-12-31" onchange="updateGeneratedCode()" title="End date (YYYY-MM-DD)" aria-label="End date" />
+            <input id="input-time-start" class="mono date-input" type="text" value="1980-01-01" onchange="updateGeneratedCode()" title="Start date (YYYY-MM-DD)" aria-label="Start date" data-i18n-title="startDateTitle" />
+            <input id="input-time-end" class="mono date-input" type="text" value="2020-12-31" onchange="updateGeneratedCode()" title="End date (YYYY-MM-DD)" aria-label="End date" data-i18n-title="endDateTitle" />
           </div>
         </div>
 
@@ -274,13 +283,13 @@
           <table>
             <thead>
               <tr>
-                <th>Var ID</th>
-                <th>CMIP7 Branded Name</th>
-                <th>Description</th>
-                <th>Realm (Mask)</th>
-                <th>Freq</th>
-                <th>CMIP6 Legacy</th>
-                <th>Area Status</th>
+                <th data-i18n="thVarId">Var ID</th>
+                <th data-i18n="thBranded">CMIP7 Branded Name</th>
+                <th data-i18n="thDesc">Description</th>
+                <th data-i18n="thRealm">Realm (Mask)</th>
+                <th data-i18n="thFreq">Freq</th>
+                <th data-i18n="thCmip6">CMIP6 Legacy</th>
+                <th data-i18n="thAreaStatus">Area Status</th>
               </tr>
             </thead>
             <tbody id="variables-tbody"></tbody>
@@ -289,28 +298,28 @@
 
         <div class="esgf-query-row">
           <div class="btn-group">
-            <button id="scan-esgf-btn" class="primary-btn" onclick="checkLiveEsgf()">Scan Live ESGF-NG Datasets</button>
+            <button id="scan-esgf-btn" class="primary-btn" onclick="checkLiveEsgf()" data-i18n="btnScanEsgf">Scan Live ESGF-NG Datasets</button>
             <select id="select-page-size" onchange="onFilterChanged()" title="Results per page" aria-label="Results per page">
-              <option value="50" selected>50 per page</option>
-              <option value="100">100 per page</option>
-              <option value="200">200 per page</option>
-              <option value="all">Load all matches</option>
+              <option value="50" selected data-i18n="page50">50 per page</option>
+              <option value="100" data-i18n="page100">100 per page</option>
+              <option value="200" data-i18n="page200">200 per page</option>
+              <option value="all" data-i18n="pageAll">Load all matches</option>
             </select>
             <label class="inline-check small muted">
               <input id="auto-query-toggle" type="checkbox" checked />
-              <span>Auto-query on filter change</span>
+              <span data-i18n="autoQueryLabel">Auto-query on filter change</span>
             </label>
           </div>
-          <span id="live-esgf-status" class="muted small">Ready to query <span class="mono">discovery.east.esgf.io/search</span></span>
+          <span id="live-esgf-status" class="muted small" data-i18n-html="statusReady">Ready to query <span class="mono">discovery.east.esgf.io/search</span></span>
         </div>
 
         <div id="live-filter-bar" class="filter-bar hidden">
           <div id="model-filter-pills" class="btn-group"></div>
           <div class="btn-group">
             <select id="filter-live-freq" onchange="onLiveClientFilter()" aria-label="Filter loaded frequencies">
-              <option value="all">All freqs</option>
+              <option value="all" data-i18n="allFreqs">All freqs</option>
             </select>
-            <input id="live-search-input" type="text" placeholder="Filter model, variant, grid..." oninput="onLiveClientFilter()" style="width:205px;" />
+            <input id="live-search-input" type="text" placeholder="Filter model, variant, grid..." data-i18n-placeholder="searchPlaceholder" oninput="onLiveClientFilter()" style="width:205px;" />
           </div>
         </div>
 
@@ -319,13 +328,13 @@
             <thead>
               <tr>
                 <th style="width:36px;"><input id="select-all-visible" type="checkbox" title="Select/deselect all visible datasets for cart" onchange="toggleSelectAllVisible(this.checked)" /></th>
-                <th>Model (source_id)</th>
-                <th>Experiment / Variant</th>
-                <th>Branded Variable</th>
-                <th>Freq · Grid</th>
-                <th>Time Span</th>
-                <th>Size</th>
-                <th>Files</th>
+                <th data-i18n="thModel">Model (source_id)</th>
+                <th data-i18n="thExpVar">Experiment / Variant</th>
+                <th data-i18n="thBrandedVar">Branded Variable</th>
+                <th data-i18n="thFreqGrid">Freq · Grid</th>
+                <th data-i18n="thTimeSpan">Time Span</th>
+                <th data-i18n="thSize">Size</th>
+                <th data-i18n="thFiles">Files</th>
               </tr>
             </thead>
             <tbody id="live-datasets-tbody"></tbody>
@@ -342,13 +351,13 @@
 
         <div id="cart-bar" class="cart-bar hidden">
           <div class="small">
-            <strong>Download Cart:</strong>
-            <span id="cart-summary" class="muted mono">0 datasets selected</span>
+            <strong data-i18n="cartLabel">Download Cart:</strong>
+            <span id="cart-summary" class="muted mono" data-i18n="cartSummaryZero">0 datasets selected</span>
           </div>
           <div class="btn-group">
-            <button class="sm active" onclick="downloadPythonScript()">Python Subset (.py) · Area Only ★</button>
-            <button class="sm" onclick="downloadWgetScript()">wget (.sh) · Full Global Files</button>
-            <button class="sm" onclick="clearCart()">Clear Cart</button>
+            <button class="sm active" onclick="downloadPythonScript()" data-i18n="btnCartPy">Python Subset (.py) · Area Only ★</button>
+            <button class="sm" onclick="downloadWgetScript()" data-i18n="btnCartWget">wget (.sh) · Full Global Files</button>
+            <button class="sm" onclick="clearCart()" data-i18n="btnClearCart">Clear Cart</button>
           </div>
         </div>
       </section>
@@ -359,19 +368,19 @@
           <div>
             <div class="section-heading">
               <span class="step-num mono">03</span>
-              <h2>Export Regional Download / Subsetting Script</h2>
+              <h2 data-i18n="step03Title">Export Regional Download / Subsetting Script</h2>
             </div>
-            <p class="muted small section-desc">Selection: <strong id="summary-selection" class="mono" style="color:var(--fg);">tas_tavg-h2m-hxy-u · historical</strong></p>
+            <p class="muted small section-desc"><span data-i18n="selectionLabel">Selection:</span> <strong id="summary-selection" class="mono" style="color:var(--fg);">tas_tavg-h2m-hxy-u · historical</strong></p>
           </div>
           <div class="seg-group" role="tablist" aria-label="Export method">
-            <button id="code-tab-python" class="active" onclick="switchCodeTab('python')">Python Area Crop ★</button>
-            <button id="code-tab-stac" onclick="switchCodeTab('stac')">STAC API (cURL)</button>
-            <button id="code-tab-cli" onclick="switchCodeTab('cli')">ESGpull / CDO CLI</button>
+            <button id="code-tab-python" class="active" onclick="switchCodeTab('python')" data-i18n="codeTabPython">Python Area Crop ★</button>
+            <button id="code-tab-stac" onclick="switchCodeTab('stac')" data-i18n="codeTabStac">STAC API (cURL)</button>
+            <button id="code-tab-cli" onclick="switchCodeTab('cli')" data-i18n="codeTabCli">ESGpull / CDO CLI</button>
           </div>
         </div>
 
         <div class="code-box">
-          <button id="copy-btn" class="sm copy-btn" onclick="copyCode()">Copy</button>
+          <button id="copy-btn" class="sm copy-btn" onclick="copyCode()" data-i18n="btnCopy">Copy</button>
           <pre id="code-output" class="mono"></pre>
         </div>
       </section>
@@ -391,20 +400,20 @@
             </svg>
           </span>
           <div>
-            <h2>Visual User Guide</h2>
-            <p class="muted small">Illustrated PDF walkthrough covering area selection, CMIP7 branded variables, live ESGF-NG queries, and local subsetting scripts.</p>
+            <h2 data-i18n="visualGuideTitle">Visual User Guide</h2>
+            <p class="muted small" data-i18n="visualGuideDesc">Illustrated PDF walkthrough covering area selection, CMIP7 branded variables, live ESGF-NG queries, and local subsetting scripts.</p>
           </div>
         </div>
-        <a class="visual-guide-cta" href="docs/CMIP7_Area_Explorer_Visual_Guide.pdf" target="_blank" rel="noopener noreferrer">Open Visual Guide ↗</a>
+        <a id="visual-guide-link" class="visual-guide-cta" href="docs/CMIP7_Area_Explorer_Visual_Guide.pdf" target="_blank" rel="noopener noreferrer" data-i18n="visualGuideCta">Open Visual Guide ↗</a>
       </section>
 
       <div class="grid-2 grid-2-md">
         <div class="card">
           <div class="section-heading">
             <span class="step-num mono">01</span>
-            <h2>How CMIP7 Data Access Works</h2>
+            <h2 data-i18n="guide01Title">How CMIP7 Data Access Works</h2>
           </div>
-          <ul class="guide-list muted">
+          <ul class="guide-list muted" data-i18n-html="guide01Body">
             <li><strong style="color:var(--fg);">Modern STAC catalog search:</strong> CMIP7 replaces legacy ESGF nodes with cloud-friendly STAC APIs (<span class="mono">discovery.east.esgf.io</span>, <span class="mono">api.stac.esgf.ceda.ac.uk</span>).</li>
             <li><strong style="color:var(--fg);">Institutional / GitHub sign-in (No OpenID):</strong> Authenticate on MetaGrid (<span class="mono">metagrid.esgf-west.org</span>) using Institutional SSO or GitHub when required.</li>
             <li><strong style="color:var(--fg);">Global files + local Python cropping:</strong> Official ESGF mirrors host full-globe <span class="mono">.nc</span> files under <strong>CC-BY-4.0</strong>. This tool builds an <span class="mono">intake-esgf</span> + <span class="mono">xarray</span> script that subsets your exact bounding box and saves a regional NetCDF4 file.</li>
@@ -413,23 +422,23 @@
         <div class="card">
           <div class="section-heading">
             <span class="step-num mono">02</span>
-            <h2>CMIP7 Branded Variable Syntax</h2>
+            <h2 data-i18n="guide02Title">CMIP7 Branded Variable Syntax</h2>
           </div>
-          <p class="muted" style="margin-top:10px;">Instead of CMIP6 table prefixes like <span class="mono">day.tasmax</span>, CMIP7 places the root physical variable first followed by structured branding suffixes:</p>
+          <p class="muted" style="margin-top:10px;" data-i18n-html="guide02Intro">Instead of CMIP6 table prefixes like <span class="mono">day.tasmax</span>, CMIP7 places the root physical variable first followed by structured branding suffixes:</p>
           <div class="code-box mono small" style="padding:10px 12px;">tas_tmax-h2m-hxy-u</div>
-          <ul class="guide-list muted">
-            <li><span class="mono" style="color:var(--fg);">tas</span> — root variable (air temperature; <span class="mono">pr</span> = precipitation, <span class="mono">tos</span> = sea surface temp)</li>
-            <li><span class="mono" style="color:var(--fg);">tmax / tavg</span> — temporal statistic (daily maximum vs. time mean)</li>
-            <li><span class="mono" style="color:var(--fg);">h2m</span> — vertical coordinate (2m height; <span class="mono">u</span> = unlevelled/surface)</li>
-            <li><span class="mono" style="color:var(--fg);">u / sea / lnd</span> — horizontal area mask (unmasked everywhere, ocean-only, or land-only)</li>
+          <ul class="guide-list muted" data-i18n-html="guide02Body">
+            <li><span class="mono" style="color:var(--fg);">tas</span>: root variable (air temperature; <span class="mono">pr</span> = precipitation, <span class="mono">tos</span> = sea surface temp)</li>
+            <li><span class="mono" style="color:var(--fg);">tmax / tavg</span>: temporal statistic (daily maximum vs. time mean)</li>
+            <li><span class="mono" style="color:var(--fg);">h2m</span>: vertical coordinate (2m height; <span class="mono">u</span> = unlevelled/surface)</li>
+            <li><span class="mono" style="color:var(--fg);">u / sea / lnd</span>: horizontal area mask (unmasked everywhere, ocean-only, or land-only)</li>
           </ul>
         </div>
         <div class="card">
           <div class="section-heading">
             <span class="step-num mono">03</span>
-            <h2>Standardized Grids &amp; Experiments</h2>
+            <h2 data-i18n="guide03Title">Standardized Grids &amp; Experiments</h2>
           </div>
-          <ul class="guide-list muted">
+          <ul class="guide-list muted" data-i18n-html="guide03Body">
             <li><strong style="color:var(--fg);">Grid labels (<span class="mono">grid_label</span>):</strong> Codes such as <span class="mono">g110</span> (atmosphere/land) or <span class="mono">g126</span> (ocean) identify MIP-DRS7 grid definitions. Leave set to <strong>Any</strong> unless comparing a single target grid.</li>
             <li><strong style="color:var(--fg);">Core &amp; ScenarioMIP experiments:</strong> Includes <span class="mono">historical</span>, <span class="mono">esm-hist</span> (emissions-driven), <span class="mono">piControl</span>, <span class="mono">amip</span>, idealized CO₂ runs, and <span class="mono">scen7-vl</span> / <span class="mono">scen7-m</span> / <span class="mono">scen7-h</span> projections.</li>
           </ul>
@@ -437,9 +446,9 @@
         <div class="card">
           <div class="section-heading">
             <span class="step-num mono">04</span>
-            <h2>Choosing a Download Workflow</h2>
+            <h2 data-i18n="guide04Title">Choosing a Download Workflow</h2>
           </div>
-          <ul class="guide-list muted">
+          <ul class="guide-list muted" data-i18n-html="guide04Body">
             <li><strong style="color:var(--fg);">Regional subset only:</strong> Export <strong style="color:var(--fg);">Python Subset (.py) · Area Only ★</strong> (or copy Step 03) and run it locally in Python to fetch and save a cropped <span class="mono">.nc</span> file.</li>
             <li><strong style="color:var(--fg);">Direct full-globe NetCDF files:</strong> Use <strong style="color:var(--fg);">Download Global .nc ↗</strong> or <strong style="color:var(--fg);">wget (.sh)</strong>, then crop locally with <span class="mono">cdo sellonlatbox,...</span>.</li>
             <li><strong style="color:var(--fg);">Large multi-model ensembles:</strong> Use <strong>Globus</strong> via <a href="https://metagrid.esgf-west.org/" target="_blank" rel="noopener noreferrer">ESGF MetaGrid</a> or the <span class="mono">ESGpull</span> CLI (<span class="mono">v0.10.0+</span>).</li>
@@ -455,19 +464,19 @@
               <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
             </svg>
           </span>
-          <h2>Glossary</h2>
+          <h2 data-i18n="glossaryTitle">Glossary</h2>
         </div>
 
         <div class="table-wrap glossary-table-wrap">
           <table class="glossary-table">
             <thead>
               <tr>
-                <th>Acronym</th>
-                <th>Meaning</th>
-                <th>Explanation</th>
+                <th data-i18n="thAcronym">Acronym</th>
+                <th data-i18n="thMeaning">Meaning</th>
+                <th data-i18n="thExplanation">Explanation</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody id="glossary-tbody">
               <tr>
                 <td class="mono glossary-acronym">AMIP</td>
                 <td class="glossary-meaning">Atmospheric Model Intercomparison Project</td>
@@ -633,15 +642,15 @@
                 <line x1="12" y1="17" x2="12.01" y2="17"></line>
               </svg>
             </span>
-            <h2>Frequently Asked Questions</h2>
+            <h2 data-i18n="faqTitle">Frequently Asked Questions</h2>
           </div>
           <div class="btn-group">
-            <button class="sm" onclick="toggleAllFaq(true)">Expand All</button>
-            <button class="sm" onclick="toggleAllFaq(false)">Collapse All</button>
+            <button class="sm" onclick="toggleAllFaq(true)" data-i18n="btnExpandAll">Expand All</button>
+            <button class="sm" onclick="toggleAllFaq(false)" data-i18n="btnCollapseAll">Collapse All</button>
           </div>
         </div>
 
-        <div class="faq-list">
+        <div id="faq-list" class="faq-list">
           <details class="faq-item">
             <summary><span class="faq-num mono">01</span> Does this website crop and download NetCDF files directly inside my browser?</summary>
             <div class="faq-body muted">
@@ -707,7 +716,7 @@
         <div class="footer-primary">
           <span class="about-title">CMIP7 Area Explorer</span>
         </div>
-        <div class="footer-secondary">
+        <div class="footer-secondary" data-i18n-html="footerSecondary">
           Developed by <strong>Marcelo G. P. Camargo</strong> · Dept. of Atmospheric Sciences (IAG/USP) · <a href="https://github.com/mgpcamargo/cmip7-area-explorer/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">MIT License</a> · CMIP7 model datasets are licensed under <strong>CC-BY-4.0</strong>.
         </div>
       </div>
@@ -743,6 +752,7 @@
   </main>
 
   <script src="data/world-50m.js?v=2"></script>
-  <script src="src/app.js?v=7"></script>
+  <script src="src/i18n.js?v=1"></script>
+  <script src="src/app.js?v=8"></script>
 </body>
 </html>

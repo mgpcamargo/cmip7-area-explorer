@@ -133,6 +133,52 @@ a:hover { text-decoration: underline; }
   line-height: 1.35;
 }
 
+.masthead-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+}
+
+.lang-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.69rem;
+  line-height: 1;
+  letter-spacing: 0.01em;
+}
+
+.lang-btn {
+  background: transparent;
+  border: 0;
+  padding: 1px 2px;
+  font-size: inherit;
+  font-weight: 400;
+  color: rgba(203, 213, 225, 0.44);
+  cursor: pointer;
+  border-radius: 2px;
+  transition: color 0.15s ease;
+}
+
+.lang-btn:hover {
+  color: rgba(241, 245, 249, 0.82);
+  background: transparent;
+}
+
+.lang-btn.active,
+.lang-btn.active:hover {
+  color: rgba(226, 232, 240, 0.84);
+  font-weight: 600;
+  background: transparent;
+  border-color: transparent;
+}
+
+.lang-sep {
+  color: rgba(203, 213, 225, 0.22);
+  user-select: none;
+}
+
 .masthead-nav {
   display: flex;
   flex-wrap: wrap;

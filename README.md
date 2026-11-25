@@ -4,8 +4,11 @@
 
 # CMIP7 Area Explorer & ESGF-NG Web Portal
 
-- **Live Web App**: **https://mgpcamargo.github.io/cmip7-area-explorer/**
-- **4-Page Visual User Guide (PDF)**: **[docs/CMIP7_Area_Explorer_Visual_Guide.pdf](docs/CMIP7_Area_Explorer_Visual_Guide.pdf)**
+- **Live Web App**: **https://mgpcamargo.github.io/cmip7-area-explorer/** (English · Português · Español)
+- **Visual User Guides (PDF)**:
+  - English: **[docs/CMIP7_Area_Explorer_Visual_Guide.pdf](docs/CMIP7_Area_Explorer_Visual_Guide.pdf)**
+  - Português (PT-BR): **[docs/CMIP7_Area_Explorer_Visual_Guide_PT-BR.pdf](docs/CMIP7_Area_Explorer_Visual_Guide_PT-BR.pdf)**
+  - Español (ES): **[docs/CMIP7_Area_Explorer_Visual_Guide_ES.pdf](docs/CMIP7_Area_Explorer_Visual_Guide_ES.pdf)**
 
 Open-source interactive cartographic web application and zero-dependency Python CLI helper to delimit a geographic bounding box, diagnose eligible **CMIP7** (`MIP-DRS7`) realms and branded variables, query live **ESGF-NG STAC** catalogs, inspect NetCDF assets, and export reproducible regional subsetting scripts.
 
@@ -13,20 +16,21 @@ Open-source interactive cartographic web application and zero-dependency Python 
 
 ## Key Capabilities
 
-- **High-Detail Cartographic Base & Terrain Switcher**:
-  - **Natural Earth 1:50m Vector Atlas** (`data/world-50m.js`, public domain) with 241 countries/territories, lakes, and major world rivers.
+- **High-Detail Cartographic Base & Satellite Switcher**:
+  - **Natural Earth 1:50m Vector Atlas** (`data/world-50m.js`, public domain) with 241 countries/territories and lakes.
   - **Layers Switcher** (beneath zoom controls) projected seamlessly in both **Natural Earth** and **Equirectangular** views:
     - **Atlas** (`1:50m` vector)
     - **Satellite** (ESA Copernicus Sentinel-2 Cloudless via EOX, CC-BY-4.0)
-  - Toggleable overlays for **Borders & Labels**, **Major Rivers**, and **Lat/Lon Graticule**.
+  - Toggleable overlays for **Borders & Labels** and **Lat/Lon Grid**, plus **double-click / double-tap country selection** to fit any country's full bounding box.
 - **Area-Aware CMIP7 Eligibility Diagnostics**:
   - Computes spherical global area fraction, detects **Land / Ocean / Polar** surface masks, and lists intersecting territories.
   - Flags compatible CMIP7 realms (`atmos`, `land`, `ocean`, `ocnBgchem`, `seaIce`) and branded variables (`tas_tavg-h2m-hxy-u`, `tas_tmax-h2m-hxy-u`, `pr_tavg-u-hxy-u`, `tos_tavg-u-hxy-sea`, `mrso_tavg-u-hxy-lnd`, etc.).
 - **Live ESGF-NG STAC Dataset Explorer & Download Cart**:
   - Queries `https://discovery.east.esgf.io/search` (with automatic fallback to `https://api.stac.esgf.ceda.ac.uk/search`) for live CMIP7 holdings.
   - Filter by model (`source_id`), frequency, grid label (`g110`, `g126`, etc.), inspect individual `.nc` assets, and export `subset_cmip7.py` (`intake-esgf` + `xarray` area crop) or `download_cmip7.sh` (`wget` + `cdo sellonlatbox`).
-- **Built-In CMIP7 Guide, FAQ & Shareable State**:
-  - Dedicated **CMIP7 Guide** and **8-question FAQ** tabs, downloadable **4-Page Visual User Guide PDF**, persistent Light/Dark themes, and one-click `Share Link` state encoding (`#bbox=...`).
+- **Multilingual UI & Unified Guides Tab**:
+  - Instant switching between **English**, **Português (PT-BR)**, and **Español (ES)** (`?lang=en|pt|es`), defaulting to English.
+  - Unified **Guides** tab with localized **Visual User Guide PDFs**, CMIP7 data access & syntax reference, a 30-term **Glossary**, collapsible **FAQs**, and persistent Light/Dark themes.
 
 ## Local Usage
 
@@ -55,8 +59,8 @@ python3 scripts/cmip7_check_area.py \
 - **Citation**: Metadata provided in [`CITATION.cff`](CITATION.cff) (use GitHub's *"Cite this repository"* button).
 - **Data & Map Credits**:
   - CMIP7 model datasets: WCRP CMIP7 participating modeling groups (**CC-BY-4.0**).
-  - Vector boundaries, lakes & rivers: Natural Earth 1:50m (**Public Domain**).
-  - Terrain & bathymetry tiles: EOX IT Services GmbH / SRTM / GEBCO (**CC-BY-4.0**).
+  - Vector boundaries & lakes: Natural Earth 1:50m (**Public Domain**).
+  - Satellite imagery tiles: ESA Copernicus Sentinel-2 Cloudless via EOX IT Services GmbH (**CC-BY-4.0**).
 
 ## CMIP7 References
 
