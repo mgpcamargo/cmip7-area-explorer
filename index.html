@@ -18,13 +18,15 @@
   <meta name="twitter:description" content="Regional CMIP7 catalog discovery, area diagnostics &amp; subset script builder." />
   <meta name="twitter:image" content="https://mgpcamargo.github.io/cmip7-area-explorer/assets/og-preview.png" />
 
-  <link rel="icon" href="favicon.ico" sizes="any" />
-  <link rel="icon" type="image/svg+xml" href="assets/brand/cmip7-area-explorer_icon_favicon.svg" />
-  <link rel="apple-touch-icon" href="assets/brand/cmip7-area-explorer_icon_app.svg" />
+  <link rel="icon" type="image/svg+xml" href="assets/brand/cmip7-area-explorer_icon_favicon.svg?v=4" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32x32.png?v=4" />
+  <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16x16.png?v=4" />
+  <link rel="shortcut icon" href="favicon.ico?v=4" />
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png?v=4" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles/main.css?v=3" />
+  <link rel="stylesheet" href="styles/main.css?v=8" />
 </head>
 <body>
 
@@ -36,26 +38,32 @@
           <img class="brand-lockup-img" src="assets/brand/masthead-lockup-dark.svg" alt="CMIP7 Area Explorer" />
         </a>
         <div class="brand-copy">
-          <div class="title-row">
-            <h1 class="sr-only">CMIP7 Area Explorer</h1>
-            <span class="masthead-tag mono">ESGF-NG · MIP-DRS7</span>
-            <span class="masthead-subtag">Community Tool for WCRP CMIP7</span>
-          </div>
+          <h1 class="sr-only">CMIP7 Area Explorer</h1>
           <p class="masthead-subtitle">
-            Regional catalog discovery, variable eligibility &amp; subset script builder.
+            Sort and download state-of-the-art climate projection datasets.
           </p>
         </div>
       </div>
 
       <nav class="masthead-nav" aria-label="Primary actions">
         <div class="seg-group masthead-tabs">
-          <button id="tab-btn-explorer" class="active" onclick="switchMainTab('explorer')">Area Explorer</button>
-          <button id="tab-btn-guidelines" onclick="switchMainTab('guidelines')">CMIP7 Guide</button>
-          <button id="tab-btn-faq" onclick="switchMainTab('faq')">FAQ</button>
+          <button id="tab-btn-explorer" class="active" onclick="switchMainTab('explorer')">
+            <svg class="nav-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="2" y1="12" x2="22" y2="12"></line>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+            </svg>
+            <span>Area Explorer</span>
+          </button>
+          <button id="tab-btn-guides" onclick="switchMainTab('guides')">
+            <svg class="nav-tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+              <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+            </svg>
+            <span>Guides</span>
+          </button>
         </div>
-        <a class="masthead-btn masthead-link-btn" href="docs/CMIP7_Area_Explorer_Visual_Guide.pdf" target="_blank" rel="noopener noreferrer" title="Open 4-page Visual User Guide PDF">Visual Guide (PDF)</a>
-        <button id="share-btn" class="masthead-btn" onclick="copyShareUrl()" title="Copy shareable link for this region &amp; variable">Share Link</button>
-        <button id="theme-toggle-btn" class="masthead-btn" onclick="toggleTheme()" title="Switch Light / Dark mode">Dark Mode</button>
+        <button id="theme-toggle-btn" class="masthead-btn theme-icon-btn" onclick="toggleTheme()" title="Switch to Dark Mode" aria-label="Switch to Dark Mode"></button>
       </nav>
     </div>
   </header>
@@ -96,7 +104,7 @@
               <button onclick="zoomStep(-1)" title="Zoom out" aria-label="Zoom out">−</button>
               <button onclick="resetView()" title="Reset zoom &amp; pan" aria-label="Reset zoom and pan">⟲</button>
               <div class="map-ctrl-sep"></div>
-              <button id="layers-toggle-btn" class="layers-btn" onclick="toggleLayersMenu(event)" title="Map layers (Atlas &amp; Terrain)" aria-label="Map layers" aria-expanded="false">
+              <button id="layers-toggle-btn" class="layers-btn" onclick="toggleLayersMenu(event)" title="Map layers (Atlas &amp; Satellite)" aria-label="Map layers" aria-expanded="false">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
                   <polyline points="2 12 12 17 22 12"></polyline>
@@ -113,9 +121,9 @@
                   <span class="layer-swatch swatch-atlas" aria-hidden="true"></span>
                   <span class="layer-name">Atlas</span>
                 </button>
-                <button id="layer-opt-terrain" class="layer-option" onclick="setBasemap('terrain')">
-                  <span class="layer-swatch swatch-terrain" aria-hidden="true"></span>
-                  <span class="layer-name">Terrain</span>
+                <button id="layer-opt-satellite" class="layer-option" onclick="setBasemap('satellite')">
+                  <span class="layer-swatch swatch-satellite" aria-hidden="true"></span>
+                  <span class="layer-name">Satellite</span>
                 </button>
               </div>
               <div class="layers-divider"></div>
@@ -124,10 +132,6 @@
                 <label class="layer-check">
                   <input id="chk-map-borders" type="checkbox" checked onchange="toggleMapOverlay('borders', this.checked)" />
                   <span>Borders &amp; Labels</span>
-                </label>
-                <label class="layer-check">
-                  <input id="chk-map-rivers" type="checkbox" onchange="toggleMapOverlay('rivers', this.checked)" />
-                  <span>Major Rivers</span>
                 </label>
                 <label class="layer-check">
                   <input id="chk-map-grid" type="checkbox" checked onchange="toggleMapOverlay('grid', this.checked)" />
@@ -214,11 +218,11 @@
         <div class="two-path-grid">
           <div class="path-card path-recommended">
             <div class="path-title">A. Regional subset output <span class="rec-tag">Recommended</span></div>
-            <div class="muted small">Export and run the Step 03 Python script on your machine — running that script downloads and saves a cropped <span class="mono">.nc</span> file for your box (this browser app generates the script).</div>
+            <div class="muted small">Export and run the Step 03 Python script on your machine to download a cropped <span class="mono">.nc</span> file for your region.</div>
           </div>
           <div class="path-card">
             <div class="path-title">B. Full-globe NetCDF links / wget</div>
-            <div class="muted small">Official ESGF mirrors host global (<span class="mono">_glb_</span>) files — download directly or via <span class="mono">wget</span>, then crop locally afterward with <span class="mono">cdo sellonlatbox</span>.</div>
+            <div class="muted small">Official ESGF mirrors host global (<span class="mono">_glb_</span>) files. Download them directly or via <span class="mono">wget</span>, then crop locally with <span class="mono">cdo sellonlatbox</span>.</div>
           </div>
         </div>
       </section>
@@ -374,8 +378,26 @@
 
     </div>
 
-    <!-- MAIN TAB 2: GUIDELINES -->
-    <div id="panel-guidelines" class="stack-lg hidden">
+    <!-- MAIN TAB 2: GUIDES -->
+    <div id="panel-guides" class="stack-lg hidden">
+      <section class="card visual-guide-banner">
+        <div class="visual-guide-copy">
+          <span class="heading-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+            </svg>
+          </span>
+          <div>
+            <h2>Visual User Guide</h2>
+            <p class="muted small">Illustrated PDF walkthrough covering area selection, CMIP7 branded variables, live ESGF-NG queries, and local subsetting scripts.</p>
+          </div>
+        </div>
+        <a class="visual-guide-cta" href="docs/CMIP7_Area_Explorer_Visual_Guide.pdf" target="_blank" rel="noopener noreferrer">Open Visual Guide ↗</a>
+      </section>
+
       <div class="grid-2 grid-2-md">
         <div class="card">
           <div class="section-heading">
@@ -424,35 +446,210 @@
           </ul>
         </div>
       </div>
-    </div>
 
-    <!-- MAIN TAB 3: FAQ -->
-    <div id="panel-faq" class="stack-lg hidden">
+      <section class="card">
+        <div class="section-heading">
+          <span class="heading-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+              <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+            </svg>
+          </span>
+          <h2>Glossary</h2>
+        </div>
+
+        <div class="table-wrap glossary-table-wrap">
+          <table class="glossary-table">
+            <thead>
+              <tr>
+                <th>Acronym</th>
+                <th>Meaning</th>
+                <th>Explanation</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="mono glossary-acronym">AMIP</td>
+                <td class="glossary-meaning">Atmospheric Model Intercomparison Project</td>
+                <td class="muted">A standardized climate experiment running atmosphere-only models forced by observed sea surface temperatures and sea ice.</td>
+              </tr>
+              <tr>
+                <td class="mono glossary-acronym">API</td>
+                <td class="glossary-meaning">Application Programming Interface</td>
+                <td class="muted">A structured software interface allowing scripts and web applications to query live ESGF-NG catalogs programmatically.</td>
+              </tr>
+              <tr>
+                <td class="mono glossary-acronym">CC-BY-4.0</td>
+                <td class="glossary-meaning">Creative Commons Attribution 4.0 International</td>
+                <td class="muted">The open data license under which CMIP7 model outputs are published, requiring attribution to the modeling groups.</td>
+              </tr>
+              <tr>
+                <td class="mono glossary-acronym">CDO</td>
+                <td class="glossary-meaning">Climate Data Operators</td>
+                <td class="muted">A command-line toolkit for manipulating gridded climate files, used via <span class="mono">sellonlatbox</span> to crop global NetCDF files locally.</td>
+              </tr>
+              <tr>
+                <td class="mono glossary-acronym">CLI</td>
+                <td class="glossary-meaning">Command-Line Interface</td>
+                <td class="muted">A text-based terminal interface used to execute tools such as <span class="mono">esgpull</span>, <span class="mono">cdo</span>, and standalone Python scripts.</td>
+              </tr>
+              <tr>
+                <td class="mono glossary-acronym">CMIP7</td>
+                <td class="glossary-meaning">Coupled Model Intercomparison Project Phase 7</td>
+                <td class="muted">The seventh phase of the global WCRP framework coordinating standardized climate model experiments and data releases.</td>
+              </tr>
+              <tr>
+                <td class="mono glossary-acronym">CMIP7-AFT</td>
+                <td class="glossary-meaning">CMIP7 Assessment Fast Track</td>
+                <td class="muted">Priority CMIP7 model simulations released ahead of the full archive to support upcoming international climate assessments.</td>
+              </tr>
+              <tr>
+                <td class="mono glossary-acronym">CMIP-IPO</td>
+                <td class="glossary-meaning">CMIP International Project Office</td>
+                <td class="muted">The international coordination office supporting CMIP governance, technical standards, and modeling community outreach.</td>
+              </tr>
+              <tr>
+                <td class="mono glossary-acronym">CMOR</td>
+                <td class="glossary-meaning">Climate Model Output Rewriter</td>
+                <td class="muted">The standard software library and formatting convention traditionally used to structure climate model variables and metadata.</td>
+              </tr>
+              <tr>
+                <td class="mono glossary-acronym">CORS</td>
+                <td class="glossary-meaning">Cross-Origin Resource Sharing</td>
+                <td class="muted">A browser security mechanism enabled by ESGF-NG STAC endpoints so this client-side page can query live datasets directly.</td>
+              </tr>
+              <tr>
+                <td class="mono glossary-acronym">cURL</td>
+                <td class="glossary-meaning">Client URL</td>
+                <td class="muted">A command-line utility for transferring data over HTTP/HTTPS, used in Step 03 to send STAC catalog search requests.</td>
+              </tr>
+              <tr>
+                <td class="mono glossary-acronym">ENSO</td>
+                <td class="glossary-meaning">El Niño–Southern Oscillation</td>
+                <td class="muted">A major coupled ocean–atmosphere climate oscillation in the tropical Pacific, monitored via regions such as the Niño 3.4 box.</td>
+              </tr>
+              <tr>
+                <td class="mono glossary-acronym">EOX</td>
+                <td class="glossary-meaning">EOX IT Services</td>
+                <td class="muted">The geospatial service provider hosting the open Copernicus Sentinel-2 Cloudless satellite tile mosaic used in the map viewer.</td>
+              </tr>
+              <tr>
+                <td class="mono glossary-acronym">ESA</td>
+                <td class="glossary-meaning">European Space Agency</td>
+                <td class="muted">The European space organization operating the Copernicus Sentinel-2 satellites that capture the Satellite layer imagery.</td>
+              </tr>
+              <tr>
+                <td class="mono glossary-acronym">ESGF</td>
+                <td class="glossary-meaning">Earth System Grid Federation</td>
+                <td class="muted">The global federated data infrastructure that stores and distributes CMIP climate simulation outputs worldwide.</td>
+              </tr>
+              <tr>
+                <td class="mono glossary-acronym">ESGF-NG</td>
+                <td class="glossary-meaning">Earth System Grid Federation Next Generation</td>
+                <td class="muted">The modernized ESGF architecture built around cloud-friendly STAC search APIs and federated single sign-on.</td>
+              </tr>
+              <tr>
+                <td class="mono glossary-acronym">ESM</td>
+                <td class="glossary-meaning">Earth System Model</td>
+                <td class="muted">A comprehensive climate model used in runs like <span class="mono">esm-hist</span> that interactively couples physics with the carbon cycle.</td>
+              </tr>
+              <tr>
+                <td class="mono glossary-acronym">HPC</td>
+                <td class="glossary-meaning">High-Performance Computing</td>
+                <td class="muted">Supercomputing clusters and institutional workstations commonly used to download and process multi-model NetCDF ensembles.</td>
+              </tr>
+              <tr>
+                <td class="mono glossary-acronym">IAG/USP</td>
+                <td class="glossary-meaning">Institute of Astronomy, Geophysics and Atmospheric Sciences / University of São Paulo</td>
+                <td class="muted">The academic institute and university in Brazil where CMIP7 Area Explorer was created.</td>
+              </tr>
+              <tr>
+                <td class="mono glossary-acronym">JSON</td>
+                <td class="glossary-meaning">JavaScript Object Notation</td>
+                <td class="muted">A lightweight text data format used by STAC APIs to return dataset metadata, footprints, and file asset URLs.</td>
+              </tr>
+              <tr>
+                <td class="mono glossary-acronym">MIP-DRS7</td>
+                <td class="glossary-meaning">Model Intercomparison Project Data Reference Syntax for CMIP7</td>
+                <td class="muted">The official CMIP7 metadata and naming standard defining branded variables, grid labels, realms, and directory layouts.</td>
+              </tr>
+              <tr>
+                <td class="mono glossary-acronym">MIT</td>
+                <td class="glossary-meaning">Massachusetts Institute of Technology (License)</td>
+                <td class="muted">The permissive open-source software license governing the CMIP7 Area Explorer web application and companion script.</td>
+              </tr>
+              <tr>
+                <td class="mono glossary-acronym">NetCDF4</td>
+                <td class="glossary-meaning">Network Common Data Form (Version 4)</td>
+                <td class="muted">An HDF5-backed binary scientific file format used across CMIP to store multidimensional gridded climate variables.</td>
+              </tr>
+              <tr>
+                <td class="mono glossary-acronym">OpenID</td>
+                <td class="glossary-meaning">Open Identity (Legacy ESGF Authentication)</td>
+                <td class="muted">The retired federated login system from legacy ESGF portals, replaced by Institutional SSO and GitHub in ESGF-NG.</td>
+              </tr>
+              <tr>
+                <td class="mono glossary-acronym">ScenarioMIP</td>
+                <td class="glossary-meaning">Scenario Model Intercomparison Project</td>
+                <td class="muted">The CMIP activity defining future emissions and socioeconomic projection experiments such as <span class="mono">scen7-vl</span>, <span class="mono">scen7-m</span>, and <span class="mono">scen7-h</span>.</td>
+              </tr>
+              <tr>
+                <td class="mono glossary-acronym">SSO</td>
+                <td class="glossary-meaning">Single Sign-On</td>
+                <td class="muted">Modern institutional or GitHub authentication used on ESGF MetaGrid when transferring large ensembles via Globus.</td>
+              </tr>
+              <tr>
+                <td class="mono glossary-acronym">STAC</td>
+                <td class="glossary-meaning">SpatioTemporal Asset Catalog</td>
+                <td class="muted">An open geospatial catalog specification enabling fast filtering of climate datasets by bounding box, time, and model properties.</td>
+              </tr>
+              <tr>
+                <td class="mono glossary-acronym">WCRP</td>
+                <td class="glossary-meaning">World Climate Research Programme</td>
+                <td class="muted">The international scientific body coordinating CMIP and global climate variability and projection research.</td>
+              </tr>
+              <tr>
+                <td class="mono glossary-acronym">WGS84</td>
+                <td class="glossary-meaning">World Geodetic System 1984</td>
+                <td class="muted">The standard geographic latitude/longitude reference system used for bounding boxes and satellite tile layers.</td>
+              </tr>
+              <tr>
+                <td class="mono glossary-acronym">Zarr</td>
+                <td class="glossary-meaning">Zarr Chunked Array Format</td>
+                <td class="muted">A cloud-optimized chunked array format supported alongside NetCDF by <span class="mono">xarray</span> and <span class="mono">intake-esgf</span>.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
       <section class="card">
         <div class="map-toolbar" style="margin-bottom:14px;">
-          <div>
-            <div class="section-heading">
-              <span class="step-num mono">FAQ</span>
-              <h2>Frequently Asked Questions</h2>
-            </div>
-            <p class="muted small section-desc">Practical answers on CMIP7 branded variables, ESGF-NG STAC discovery, regional cropping, and licensing.</p>
+          <div class="section-heading">
+            <span class="heading-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+              </svg>
+            </span>
+            <h2>Frequently Asked Questions</h2>
           </div>
           <div class="btn-group">
-            <a class="sm button-like" href="docs/CMIP7_Area_Explorer_Visual_Guide.pdf" target="_blank" rel="noopener noreferrer">Download 4-Page Visual Guide (PDF) ↗</a>
             <button class="sm" onclick="toggleAllFaq(true)">Expand All</button>
             <button class="sm" onclick="toggleAllFaq(false)">Collapse All</button>
           </div>
         </div>
 
         <div class="faq-list">
-          <details class="faq-item" open>
+          <details class="faq-item">
             <summary><span class="faq-num mono">01</span> Does this website crop and download NetCDF files directly inside my browser?</summary>
             <div class="faq-body muted">
               Official ESGF-NG mirrors distribute full-globe (<span class="mono">_glb_</span>) NetCDF4 files that often span hundreds of megabytes to several gigabytes per simulation. Rather than pulling multi-gigabyte arrays into browser memory, <strong>CMIP7 Area Explorer</strong> queries live ESGF-NG STAC catalogs in real time and generates a reproducible <span class="mono">intake-esgf</span> + <span class="mono">xarray</span> Python script (or <span class="mono">wget</span> + <span class="mono">cdo sellonlatbox</span> workflow) that subsets and saves your exact bounding box on your workstation or HPC environment.
             </div>
           </details>
 
-          <details class="faq-item" open>
+          <details class="faq-item">
             <summary><span class="faq-num mono">02</span> Why do CMIP7 variable names look like <span class="mono">tas_tavg-h2m-hxy-u</span> instead of CMIP6's <span class="mono">Amon.tas</span>?</summary>
             <div class="faq-body muted">
               Under the <strong>MIP-DRS7</strong> standard, CMIP7 replaces opaque CMOR table names with self-describing <strong>branded variable names</strong> formatted as <span class="mono">&lt;root&gt;_&lt;temporal&gt;-&lt;vertical&gt;-&lt;horizontal&gt;-&lt;area_mask&gt;</span>. For example, daily maximum and minimum 2m air temperature share the physical root <span class="mono">tas</span> and are distinguished explicitly as <span class="mono">tas_tmax-h2m-hxy-u</span> and <span class="mono">tas_tmin-h2m-hxy-u</span>. Step 02 displays both the new CMIP7 branded syntax and legacy CMIP6 equivalents side by side.
@@ -488,9 +685,9 @@
           </details>
 
           <details class="faq-item">
-            <summary><span class="faq-num mono">07</span> How do the <span class="mono">Atlas</span> and <span class="mono">Terrain</span> map views and overlays help area selection?</summary>
+            <summary><span class="faq-num mono">07</span> How do the <span class="mono">Atlas</span> and <span class="mono">Satellite</span> map views and overlays help area selection?</summary>
             <div class="faq-body muted">
-              Click the stacked <strong>Layers</strong> icon beneath the zoom buttons (<span class="mono">+ / − / ⟲</span>) to switch between the fast offline <strong>1:50m Vector Atlas</strong> and <strong>Shaded Terrain &amp; Bathymetry</strong> (helpful for aligning bounding boxes with mountain barriers like the Andes or ocean trenches), and toggle <strong>Major Rivers</strong> to trace hydrological basins such as the Amazon, Paraná, Nile, or Danube.
+              Click the stacked <strong>Layers</strong> icon beneath the zoom buttons (<span class="mono">+ / − / ⟲</span>) to switch between the fast offline <strong>1:50m Vector Atlas</strong> and <strong>Satellite</strong> (ESA Copernicus Sentinel-2 Cloudless), and toggle <strong>Borders &amp; Labels</strong> or the <strong>Lat/Lon Grid</strong>.
             </div>
           </details>
 
@@ -509,15 +706,13 @@
       <div class="footer-meta">
         <div class="footer-primary">
           <span class="about-title">CMIP7 Area Explorer</span>
-          <span>Developed by <strong>Marcelo G. P. Camargo</strong> · Dept. of Atmospheric Sciences (IAG/USP) · <a href="https://github.com/mgpcamargo/cmip7-area-explorer/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">MIT License</a></span>
         </div>
-        <div class="footer-disclaimer">
-          Community-contributed open-source tool for <a href="https://wcrp-cmip.github.io/cmip7-guidance/" target="_blank" rel="noopener noreferrer">WCRP CMIP7</a> (not an official WCRP/CMIP-IPO product). CMIP7 model datasets are licensed under <strong>CC-BY-4.0</strong>.
+        <div class="footer-secondary">
+          Developed by <strong>Marcelo G. P. Camargo</strong> · Dept. of Atmospheric Sciences (IAG/USP) · <a href="https://github.com/mgpcamargo/cmip7-area-explorer/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">MIT License</a> · CMIP7 model datasets are licensed under <strong>CC-BY-4.0</strong>.
         </div>
       </div>
 
       <div class="about-links">
-        <a class="footer-text-link" href="docs/CMIP7_Area_Explorer_Visual_Guide.pdf" target="_blank" rel="noopener noreferrer" title="4-Page Visual User Guide (PDF)">User Guide (PDF) ↗</a>
         <a class="footer-text-link" href="https://wcrp-cmip.org/tools/" target="_blank" rel="noopener noreferrer" title="WCRP-CMIP Tools Database">CMIP Tools ↗</a>
         <a class="footer-text-link" href="https://metagrid.esgf-west.org/" target="_blank" rel="noopener noreferrer" title="ESGF MetaGrid Portal">MetaGrid ↗</a>
         <span class="footer-sep" aria-hidden="true"></span>
@@ -548,6 +743,6 @@
   </main>
 
   <script src="data/world-50m.js?v=2"></script>
-  <script src="src/app.js?v=3"></script>
+  <script src="src/app.js?v=7"></script>
 </body>
 </html>

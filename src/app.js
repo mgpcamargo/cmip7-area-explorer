@@ -30,13 +30,13 @@
     { id: "fgco2", branded: "fgco2_tavg-u-hxy-sea", compound: "ocnBgchem.fgco2_tavg-u-hxy-sea.mon.glb", desc: "Surface Downward Mass Flux of CO2", domain: "ocnBgchem", mask: "sea", freq: "mon", cmip6: "Omon.fgco2", defaultGrid: "g126" }
   ].map(v => ({ ...v, rowKey: v.key || v.id }));
 
-  const WORLD = window.WORLD_50M || window.WORLD_110M || { countries: [], lakes: [], rivers: [] };
+  const WORLD = window.WORLD_50M || window.WORLD_110M || { countries: [], lakes: [] };
 
   const RASTER_LAYERS = {
-    terrain: {
-      id: "terrain-light",
-      label: "Terrain",
-      attrib: "Relief & Bathymetry: EOX / SRTM / GEBCO · CC-BY-4.0"
+    satellite: {
+      id: "s2cloudless-2024",
+      label: "Satellite",
+      attrib: "Imagery: Copernicus Sentinel-2 Cloudless (EOX) · CC-BY-4.0"
     }
   };
 
@@ -52,9 +52,8 @@
     regionName: "South America",
     lonMode: "360",
     projection: "naturalEarth",
-    basemap: "atlas", // "atlas" | "satellite" | "terrain" | "bluemarble"
+    basemap: "atlas", // "atlas" | "satellite"
     showBorders: true,
-    showRivers: false,
     showGrid: true,
     layersMenuOpen: false,
     toolMode: "draw",
@@ -66,6 +65,8 @@
     hoverCountry: null,
     hoverCoords: null,
     interactMode: null,
+    hasDragged: false,
+    lastTap: null,
     dragStartScreen: null,
     dragStartGeo: null,
     dragStartBox: null,
@@ -94,11 +95,12 @@
   function getInitialTabFromUrl() {
     if (typeof location === "undefined") return "explorer";
     const rawHash = (location.hash || "").replace(/^#/, "").trim().toLowerCase();
-    if (rawHash === "faq" || rawHash === "guidelines" || rawHash === "explorer") return rawHash;
+    if (rawHash === "guides" || rawHash === "faq" || rawHash === "guidelines") return "guides";
+    if (rawHash === "explorer") return "explorer";
     const hashTab = new URLSearchParams(rawHash).get("tab");
     const queryTab = new URLSearchParams(location.search || "").get("tab");
     const tab = (hashTab || queryTab || "").toLowerCase();
-    if (tab === "faq" || tab === "guidelines" || tab === "explorer") return tab;
+    if (tab === "guides" || tab === "faq" || tab === "guidelines") return "guides";
     return "explorer";
   }
 
@@ -140,31 +142,9 @@
       if (mapLayer === "atlas" || RASTER_LAYERS[mapLayer]) {
         state.basemap = mapLayer;
       }
-      if (params.get("rivers") === "1") {
-        state.showRivers = true;
-      }
     } catch (_) {
       // Ignore malformed hashes
     }
-  }
-
-  function buildShareUrl() {
-    if (typeof location === "undefined") return "";
-    const exp = document.getElementById("select-experiment").value;
-    const grid = document.getElementById("select-grid").value;
-    const paramsObj = {
-      bbox: `${state.lonMin},${state.latMin},${state.lonMax},${state.latMax}`,
-      var: state.selectedVar.rowKey,
-      exp,
-      grid,
-      proj: state.projection,
-      region: state.regionName
-    };
-    if (state.basemap !== "atlas") paramsObj.layer = state.basemap;
-    if (state.showRivers) paramsObj.rivers = "1";
-    const params = new URLSearchParams(paramsObj);
-    const base = location.href.split("#")[0];
-    return `${base}#${params.toString()}`;
   }
 
   // --- Projection Math ---
@@ -321,6 +301,11 @@
     else if (!hasLand && hasOcean) label = "Ocean-only";
 
     const countriesList = Array.from(hitCountries).sort();
+    if (countriesList.length > 7 && countriesList.includes(state.regionName)) {
+      const idx = countriesList.indexOf(state.regionName);
+      countriesList.splice(idx, 1);
+      countriesList.unshift(state.regionName);
+    }
     state.surface = { hasLand, hasOcean, hasPolar, label, countries: countriesList };
 
     const toRad = Math.PI / 180;
@@ -509,7 +494,7 @@
     }
     // Natural Earth is pseudocylindrical: parallels are horizontal and x scales linearly with lon per parallel
     const latSpan = latN - latS;
-    const strips = Math.max(2, Math.min(24, Math.ceil((latSpan * Math.sqrt(state.zoom)) / 2.5)));
+    const strips = Math.max(2, Math.min(6, Math.ceil(latSpan / 4)));
     for (let s = 0; s < strips; s++) {
       const f0 = s / strips;
       const f1 = (s + 1) / strips;
@@ -543,13 +528,14 @@
     return !(xMax < -4 || xMin > BASE_W + 4);
   }
 
-  function drawRasterBasemap(layerId, dpr) {
+  function drawRasterBasemap(layerId) {
     // Ensure global z=0 base tiles are warmed in cache for instant fallback
     requestTile(layerId, 0, 0, 0);
     requestTile(layerId, 0, 0, 1);
 
-    const effectivePx = BASE_W * Math.min(2, dpr) * state.zoom;
-    const targetZ = Math.min(6, Math.max(2, Math.ceil(Math.log2(effectivePx / 560))));
+    // Downscale max tile level to z=4 (8192x4096) so max-zoom panning stays smooth at 60fps
+    const effectivePx = BASE_W * state.zoom;
+    const targetZ = Math.min(4, Math.max(2, Math.ceil(Math.log2(effectivePx / 960)) + 1));
     const cols = 1 << (targetZ + 1);
     const rows = 1 << targetZ;
 
@@ -606,12 +592,11 @@
     }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = "high";
+    ctx.imageSmoothingQuality = state.interactMode === "pan" ? "low" : "medium";
 
     const isLight = document.documentElement.classList.contains("light");
     const rasterCfg = RASTER_LAYERS[state.basemap] || null;
-    const isDarkImagery = state.basemap === "satellite" || state.basemap === "bluemarble";
-    const isLightTerrain = state.basemap === "terrain";
+    const isDarkImagery = state.basemap === "satellite";
 
     const outerBg = isLight ? "#dce5ef" : "#030b33";
     const oceanTop = isLight ? "#d4e8f7" : "#071a55";
@@ -619,28 +604,27 @@
 
     let gridColor = isLight ? "rgba(10, 36, 102, 0.09)" : "rgba(92, 230, 240, 0.14)";
     let specialLineColor = isLight ? "rgba(27, 156, 192, 0.30)" : "rgba(51, 214, 238, 0.28)";
-    if (isLightTerrain) {
-      gridColor = "rgba(15, 23, 42, 0.13)";
-      specialLineColor = "rgba(17, 127, 166, 0.34)";
+    if (isDarkImagery) {
+      gridColor = "rgba(255, 255, 255, 0.18)";
+      specialLineColor = "rgba(92, 230, 240, 0.38)";
     }
 
     const landFill = isLight ? "#f0ede4" : "#162b52";
     const landHoverFill = rasterCfg
-      ? "rgba(27, 156, 192, 0.16)"
+      ? "rgba(255, 255, 255, 0.14)"
       : (isLight ? "#e1dccf" : "#213f73");
     const borderColor = rasterCfg
-      ? "rgba(30, 41, 59, 0.46)"
+      ? "rgba(248, 250, 252, 0.48)"
       : (isLight ? "#94a3b8" : "rgba(92, 230, 240, 0.34)");
-    const coastColor = isLight ? "#64748b" : "#2aa7c9";
+    const coastColor = isDarkImagery ? "rgba(226, 232, 240, 0.55)" : (isLight ? "#64748b" : "#2aa7c9");
     const lakeFill = isLight ? "#cbe4f8" : "#071a55";
-    const riverColor = isLightTerrain
-      ? "rgba(17, 127, 166, 0.78)"
-      : (isLight ? "rgba(17, 127, 166, 0.70)" : "rgba(51, 214, 238, 0.72)");
 
-    const boxFill = isLight ? "rgba(20, 69, 154, 0.15)" : "rgba(255, 194, 26, 0.18)";
-    const boxStroke = isLight ? "#0a2466" : "#ffc21a";
-    const labelColor = (isLight || isLightTerrain) ? "#1e293b" : "#e2e8f0";
-    const labelHalo = (isLight || isLightTerrain) ? "rgba(255, 255, 255, 0.84)" : "rgba(3, 11, 51, 0.84)";
+    const boxFill = isDarkImagery
+      ? "rgba(255, 194, 26, 0.18)"
+      : (isLight ? "rgba(20, 69, 154, 0.15)" : "rgba(255, 194, 26, 0.18)");
+    const boxStroke = isDarkImagery ? "#ffc21a" : (isLight ? "#0a2466" : "#ffc21a");
+    const labelColor = isDarkImagery ? "#f8fafc" : (isLight ? "#1e293b" : "#e2e8f0");
+    const labelHalo = isDarkImagery ? "rgba(3, 11, 51, 0.85)" : (isLight ? "rgba(255, 255, 255, 0.84)" : "rgba(3, 11, 51, 0.84)");
 
     ctx.fillStyle = outerBg;
     ctx.fillRect(0, 0, BASE_W, BASE_H);
@@ -657,7 +641,7 @@
     ctx.fillRect(0, 0, BASE_W, BASE_H);
 
     if (rasterCfg) {
-      drawRasterBasemap(rasterCfg.id, dpr);
+      drawRasterBasemap(rasterCfg.id);
     }
 
     if (state.showGrid) {
@@ -699,6 +683,7 @@
       ctx.strokeStyle = state.showBorders ? borderColor : coastColor;
       ctx.lineWidth = state.showBorders ? 0.65 : 0.45;
       for (const c of WORLD.countries) {
+        if (state.zoom > 1.05 && !isGeoRectVisible(c.b[0], c.b[2], c.b[1], c.b[3])) continue;
         ctx.beginPath();
         drawRings(c.g);
         ctx.fill("evenodd");
@@ -708,6 +693,7 @@
       ctx.strokeStyle = borderColor;
       ctx.lineWidth = 0.75;
       for (const c of WORLD.countries) {
+        if (state.zoom > 1.05 && !isGeoRectVisible(c.b[0], c.b[2], c.b[1], c.b[3])) continue;
         ctx.beginPath();
         drawRings(c.g);
         ctx.stroke();
@@ -722,21 +708,6 @@
       drawRings(WORLD.lakes);
       ctx.fill("evenodd");
       ctx.stroke();
-    }
-
-    if (state.showRivers && WORLD.rivers && WORLD.rivers.length) {
-      ctx.save();
-      ctx.strokeStyle = riverColor;
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-      for (const rv of WORLD.rivers) {
-        if (state.zoom < 1.6 && rv.s > 4) continue;
-        ctx.lineWidth = rv.s <= 2 ? (state.zoom >= 2 ? 1.35 : 1.0) : (state.zoom >= 2 ? 0.9 : 0.65);
-        ctx.beginPath();
-        drawLines(rv.l);
-        ctx.stroke();
-      }
-      ctx.restore();
     }
 
     if (state.hoverCountry) {
@@ -862,15 +833,29 @@
   }
 
   function snapHalf(val) { return Math.round(val * 2) / 2; }
+  function floorHalf(val) { return Math.floor(val * 2) / 2; }
+  function ceilHalf(val) { return Math.ceil(val * 2) / 2; }
+
+  function selectCountryBounds(country) {
+    if (!country || !country.b) return;
+    const latMin = Math.max(-90, floorHalf(country.b[1]));
+    let latMax = Math.min(90, ceilHalf(country.b[3]));
+    const lonMin = Math.max(-180, floorHalf(country.b[0]));
+    let lonMax = Math.min(180, ceilHalf(country.b[2]));
+    if (latMax <= latMin) latMax = Math.min(90, latMin + 0.5);
+    if (lonMax <= lonMin) lonMax = Math.min(180, lonMin + 0.5);
+    applyPreset(country.n, latMin, latMax, lonMin, lonMax);
+  }
 
   canvas.addEventListener("pointerdown", (e) => {
     const pos = getBasePointerPos(e);
     const geo = screenToGeo(pos.x, pos.y);
     canvas.setPointerCapture(e.pointerId);
+    state.dragStartScreen = pos;
+    state.hasDragged = false;
 
     if (e.button === 1 || e.shiftKey || state.toolMode === "pan") {
       state.interactMode = "pan";
-      state.dragStartScreen = pos;
       state.dragStartPan = { x: state.panX, y: state.panY };
       canvas.style.cursor = "grabbing";
       return;
@@ -906,7 +891,7 @@
       state.hoverCountry = country;
 
       const hud = document.getElementById("map-hud");
-      hud.textContent = `Lat: ${geo.lat.toFixed(1)}°, Lon: ${geo.lon.toFixed(1)}°` + (country ? ` · ${country.n}` : " · Ocean");
+      hud.textContent = `Lat: ${geo.lat.toFixed(1)}°, Lon: ${geo.lon.toFixed(1)}°` + (country ? ` · ${country.n} (2× click to select)` : " · Ocean");
 
       const handle = findHandleAt(pos.x, pos.y);
       if (state.toolMode === "pan" || e.shiftKey) canvas.style.cursor = "grab";
@@ -914,14 +899,22 @@
       else if (isInsideBox(geo) && !(state.latMin === -90 && state.latMax === 90 && state.lonMin === -180 && state.lonMax === 180)) canvas.style.cursor = "move";
       else canvas.style.cursor = "crosshair";
 
-      if (changed) drawMap();
+      if (changed) scheduleRedraw();
       return;
+    }
+
+    if (!state.hasDragged) {
+      const dragThreshold = e.pointerType === "touch" ? 6 : 4;
+      if (Math.hypot(pos.x - state.dragStartScreen.x, pos.y - state.dragStartScreen.y) < dragThreshold) {
+        return;
+      }
+      state.hasDragged = true;
     }
 
     if (state.interactMode === "pan") {
       state.panX = state.dragStartPan.x + (pos.x - state.dragStartScreen.x);
       state.panY = state.dragStartPan.y + (pos.y - state.dragStartScreen.y);
-      drawMap();
+      scheduleRedraw();
       return;
     }
 
@@ -964,11 +957,39 @@
     refreshAll();
   });
 
-  canvas.addEventListener("pointerup", () => {
-    const wasEditing = state.interactMode && state.interactMode !== "pan";
+  canvas.addEventListener("pointerup", (e) => {
+    const mode = state.interactMode;
+    const didDrag = state.hasDragged;
     state.interactMode = null;
+    state.hasDragged = false;
     canvas.style.cursor = state.toolMode === "pan" ? "grab" : "crosshair";
-    if (wasEditing) maybeAutoQuery();
+
+    if (!didDrag && (e.pointerType !== "mouse" || e.button === 0)) {
+      const pos = getBasePointerPos(e);
+      const now = performance.now();
+      const isDoubleTap = state.lastTap &&
+        (now - state.lastTap.time) <= 400 &&
+        Math.hypot(pos.x - state.lastTap.x, pos.y - state.lastTap.y) <= 26;
+      if (isDoubleTap) {
+        state.lastTap = null;
+        const geo = screenToGeo(pos.x, pos.y);
+        const country = findCountryAt(geo.lon, geo.lat);
+        if (country) selectCountryBounds(country);
+      } else {
+        state.lastTap = { time: now, x: pos.x, y: pos.y };
+      }
+      return;
+    }
+
+    state.lastTap = null;
+    if (mode === "pan") scheduleRedraw();
+    if (didDrag && mode && mode !== "pan") maybeAutoQuery();
+  });
+
+  canvas.addEventListener("pointercancel", () => {
+    state.interactMode = null;
+    state.hasDragged = false;
+    canvas.style.cursor = state.toolMode === "pan" ? "grab" : "crosshair";
   });
 
   canvas.addEventListener("wheel", (e) => {
@@ -985,7 +1006,7 @@
     state.panY = pos.y - BASE_H / 2 - (pos.y - BASE_H / 2 - state.panY) * scale;
     state.zoom = newZoom;
     if (state.zoom === 1) { state.panX = 0; state.panY = 0; }
-    drawMap();
+    scheduleRedraw();
   }
 
   function zoomStep(delta) { zoomAt(delta > 0 ? 1.35 : 1 / 1.35, { x: BASE_W / 2, y: BASE_H / 2 }); }
@@ -1653,23 +1674,24 @@ esgpull download
   }
 
   function switchMainTab(tab) {
-    ["explorer", "guidelines", "faq"].forEach(k => {
+    const target = (tab === "guides" || tab === "guidelines" || tab === "faq") ? "guides" : "explorer";
+    ["explorer", "guides"].forEach(k => {
       const panel = document.getElementById("panel-" + k);
       const btn = document.getElementById("tab-btn-" + k);
-      if (panel) panel.classList.toggle("hidden", k !== tab);
-      if (btn) btn.classList.toggle("active", k === tab);
+      if (panel) panel.classList.toggle("hidden", k !== target);
+      if (btn) btn.classList.toggle("active", k === target);
     });
-    if (tab === "explorer") drawMap();
+    if (target === "explorer") drawMap();
   }
 
   function toggleAllFaq(openState) {
-    document.querySelectorAll("#panel-faq details.faq-item").forEach(d => {
+    document.querySelectorAll("#panel-guides details.faq-item").forEach(d => {
       d.open = !!openState;
     });
   }
 
   function syncLayersUi() {
-    ["atlas", "terrain"].forEach(k => {
+    ["atlas", "satellite"].forEach(k => {
       const btn = document.getElementById("layer-opt-" + k);
       if (btn) btn.classList.toggle("active", state.basemap === k);
     });
@@ -1683,8 +1705,6 @@ esgpull download
 
     const bChk = document.getElementById("chk-map-borders");
     if (bChk) bChk.checked = state.showBorders;
-    const rChk = document.getElementById("chk-map-rivers");
-    if (rChk) rChk.checked = state.showRivers;
     const gChk = document.getElementById("chk-map-grid");
     if (gChk) gChk.checked = state.showGrid;
     updateMapAttribution();
@@ -1705,7 +1725,6 @@ esgpull download
 
   function toggleMapOverlay(kind, checked) {
     if (kind === "borders") state.showBorders = !!checked;
-    else if (kind === "rivers") state.showRivers = !!checked;
     else if (kind === "grid") state.showGrid = !!checked;
     syncLayersUi();
     drawMap();
@@ -1727,11 +1746,19 @@ esgpull download
     }
   });
 
+  const THEME_ICONS = {
+    moon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>',
+    sun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg>'
+  };
+
   function syncThemeButtonLabel() {
     const btn = document.getElementById("theme-toggle-btn");
     if (!btn) return;
     const isLight = document.documentElement.classList.contains("light");
-    btn.textContent = isLight ? "Dark Mode" : "Light Mode";
+    const label = isLight ? "Switch to Dark Mode" : "Switch to Light Mode";
+    btn.innerHTML = isLight ? THEME_ICONS.moon : THEME_ICONS.sun;
+    btn.title = label;
+    btn.setAttribute("aria-label", label);
   }
 
   function toggleTheme() {
@@ -1758,11 +1785,6 @@ esgpull download
 
   function copyCdoCommand(btn) {
     copyWithFeedback(getCdoCommand(), btn, "Copy CDO", "Copied!");
-  }
-
-  function copyShareUrl() {
-    const url = buildShareUrl();
-    copyWithFeedback(url, document.getElementById("share-btn"), "Share Link", "Link Copied!");
   }
 
   function refreshAll() {
@@ -1805,8 +1827,7 @@ esgpull download
     setBasemap,
     toggleMapOverlay,
     copyCode,
-    copyCdoCommand,
-    copyShareUrl
+    copyCdoCommand
   });
 
   try {
@@ -1826,7 +1847,7 @@ esgpull download
   if (initialTab !== "explorer") switchMainTab(initialTab);
   window.addEventListener("hashchange", () => {
     const t = getInitialTabFromUrl();
-    if (t === "faq" || t === "guidelines" || t === "explorer") switchMainTab(t);
+    if (t === "guides" || t === "explorer") switchMainTab(t);
   });
   maybeAutoQuery();
 })();

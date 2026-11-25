@@ -17,7 +17,7 @@ Open-source interactive cartographic web application and zero-dependency Python 
   - **Natural Earth 1:50m Vector Atlas** (`data/world-50m.js`, public domain) with 241 countries/territories, lakes, and major world rivers.
   - **Layers Switcher** (beneath zoom controls) projected seamlessly in both **Natural Earth** and **Equirectangular** views:
     - **Atlas** (`1:50m` vector)
-    - **Terrain** (EOX / SRTM / GEBCO shaded topographic relief & ocean trenches, CC-BY-4.0)
+    - **Satellite** (ESA Copernicus Sentinel-2 Cloudless via EOX, CC-BY-4.0)
   - Toggleable overlays for **Borders & Labels**, **Major Rivers**, and **Lat/Lon Graticule**.
 - **Area-Aware CMIP7 Eligibility Diagnostics**:
   - Computes spherical global area fraction, detects **Land / Ocean / Polar** surface masks, and lists intersecting territories.
