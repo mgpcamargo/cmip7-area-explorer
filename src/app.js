@@ -270,8 +270,14 @@
     return aMinX <= bMaxX && aMaxX >= bMinX && aMinY <= bMaxY && aMaxY >= bMinY;
   }
 
+  function formatAreaKm2(km2) {
+    if (km2 >= 1e6) return (km2 / 1e6).toFixed(km2 >= 1e7 ? 1 : 2) + "M km²";
+    if (km2 >= 1e4) return Math.round(km2 / 1e3) + "k km²";
+    return Math.max(1, Math.round(km2)).toLocaleString("en-US") + " km²";
+  }
+
   function analyzeSelectedArea() {
-    const steps = 16;
+    const steps = 20;
     let landCount = 0;
     let oceanCount = 0;
     const hitCountries = new Set();
@@ -304,11 +310,17 @@
       }
     }
 
+    const totalSamples = Math.max(1, landCount + oceanCount);
     const hasLand = landCount > 0;
     const hasOcean = oceanCount > 0;
     const hasPolar = Math.abs(state.latMax) >= 58 || Math.abs(state.latMin) >= 58;
 
-    let label = tr("surfaceMixed");
+    let landPct = Math.round((landCount / totalSamples) * 100);
+    if (hasLand && landPct === 0) landPct = 1;
+    if (hasOcean && landPct === 100) landPct = 99;
+    const oceanPct = 100 - landPct;
+
+    let label = tr("surfaceMixedShort");
     if (hasLand && !hasOcean) label = tr("surfaceLand");
     else if (!hasLand && hasOcean) label = tr("surfaceOcean");
 
@@ -318,15 +330,35 @@
       countriesList.splice(idx, 1);
       countriesList.unshift(state.regionName);
     }
-    state.surface = { hasLand, hasOcean, hasPolar, label, countries: countriesList };
+    state.surface = { hasLand, hasOcean, hasPolar, label, landPct, oceanPct, countries: countriesList };
 
     const toRad = Math.PI / 180;
     const latFrac = Math.abs(Math.sin(state.latMax * toRad) - Math.sin(state.latMin * toRad)) / 2;
     const lonFrac = Math.abs(state.lonMax - state.lonMin) / 360;
-    const areaPct = Math.max(0.01, latFrac * lonFrac * 100);
+    const areaFrac = latFrac * lonFrac;
+    const areaPct = Math.max(0.01, areaFrac * 100);
+    const areaKm2 = areaFrac * 510072000;
+    const gridCells = Math.max(1, Math.round(Math.abs(state.latMax - state.latMin) * Math.abs(state.lonMax - state.lonMin)));
 
     document.getElementById("diag-area-pct").textContent = areaPct.toFixed(1) + "%";
-    document.getElementById("diag-surface").textContent = label;
+    const km2El = document.getElementById("diag-area-km2");
+    if (km2El) km2El.textContent = `(${formatAreaKm2(areaKm2)})`;
+    const cellsEl = document.getElementById("diag-grid-cells");
+    if (cellsEl) cellsEl.textContent = "~" + gridCells.toLocaleString("en-US");
+
+    const surfLeft = document.getElementById("diag-surface-left");
+    const surfRight = document.getElementById("diag-surface-right");
+    if (surfLeft) {
+      surfLeft.innerHTML = `${tr("surfacePrefix")} <strong>${label}</strong> (${landPct}% ${tr("landWord")})`;
+    }
+    if (surfRight) {
+      surfRight.textContent = `${oceanPct}% ${tr("oceanWord")}`;
+    }
+    const barLand = document.getElementById("bar-land");
+    const barOcean = document.getElementById("bar-ocean");
+    if (barLand) barLand.style.width = landPct + "%";
+    if (barOcean) barOcean.style.width = oceanPct + "%";
+
     document.getElementById("region-label").textContent = trRegion(state.regionName);
 
     const countriesEl = document.getElementById("diag-countries");
@@ -848,12 +880,51 @@
   function floorHalf(val) { return Math.floor(val * 2) / 2; }
   function ceilHalf(val) { return Math.ceil(val * 2) / 2; }
 
+  function getPrimaryCountryBounds(country) {
+    const b = country.b;
+    if (!country.g || !country.g.length) return b;
+    const rawSpan = b[2] - b[0];
+    if (rawSpan <= 100) return b;
+
+    const polys = country.g.map(poly => {
+      let minX = 180, maxX = -180, minY = 90, maxY = -90;
+      for (const pt of poly[0]) {
+        if (pt[0] < minX) minX = pt[0];
+        if (pt[0] > maxX) maxX = pt[0];
+        if (pt[1] < minY) minY = pt[1];
+        if (pt[1] > maxY) maxY = pt[1];
+      }
+      const midLat = ((minY + maxY) / 2) * (Math.PI / 180);
+      const area = (maxX - minX) * (maxY - minY) * Math.max(0.05, Math.cos(midLat));
+      return { minX, maxX, minY, maxY, area };
+    });
+    polys.sort((a, c) => c.area - a.area);
+    const main = polys[0];
+    const isAntimeridian = rawSpan > 180;
+    const isOverseasSpread = rawSpan > 100 && (main.maxX - main.minX) < 30;
+    if (!isAntimeridian && !isOverseasSpread) return b;
+
+    let minX = main.minX, maxX = main.maxX, minY = main.minY, maxY = main.maxY;
+    for (const p of polys) {
+      const cx = (p.minX + p.maxX) / 2;
+      const cy = (p.minY + p.maxY) / 2;
+      if (cx >= main.minX - 6 && cx <= main.maxX + 6 && cy >= main.minY - 6 && cy <= main.maxY + 6) {
+        if (p.minX < minX) minX = p.minX;
+        if (p.maxX > maxX) maxX = p.maxX;
+        if (p.minY < minY) minY = p.minY;
+        if (p.maxY > maxY) maxY = p.maxY;
+      }
+    }
+    return [minX, minY, maxX, maxY];
+  }
+
   function selectCountryBounds(country) {
     if (!country || !country.b) return;
-    const latMin = Math.max(-90, floorHalf(country.b[1]));
-    let latMax = Math.min(90, ceilHalf(country.b[3]));
-    const lonMin = Math.max(-180, floorHalf(country.b[0]));
-    let lonMax = Math.min(180, ceilHalf(country.b[2]));
+    const b = getPrimaryCountryBounds(country);
+    const latMin = Math.max(-90, floorHalf(b[1]));
+    let latMax = Math.min(90, ceilHalf(b[3]));
+    const lonMin = Math.max(-180, floorHalf(b[0]));
+    let lonMax = Math.min(180, ceilHalf(b[2]));
     if (latMax <= latMin) latMax = Math.min(90, latMin + 0.5);
     if (lonMax <= lonMin) lonMax = Math.min(180, lonMin + 0.5);
     applyPreset(country.n, latMin, latMax, lonMin, lonMax);
@@ -1046,19 +1117,221 @@
     document.getElementById("input-lon-max").value = state.lonMax;
   }
 
+  function normalizeLonPair(rawMin, rawMax) {
+    const a = Math.max(-180, Math.min(360, rawMin));
+    const b = Math.max(-180, Math.min(360, rawMax));
+    if ((a === 0 && b === 360) || (a === 360 && b === 0) || (a === -180 && b === 180) || (a === 180 && b === -180)) {
+      return [-180, 180];
+    }
+    let n1 = a > 180 ? a - 360 : a;
+    let n2 = b > 180 ? b - 360 : b;
+    if (a === 180 && b > 180) n1 = -180;
+    if (b === 180 && a > 180) n2 = -180;
+    const lo = Math.max(-180, Math.min(180, Math.min(n1, n2)));
+    const hi = Math.max(-180, Math.min(180, Math.max(n1, n2)));
+    return [lo, hi === lo ? Math.min(180, lo + 0.5) : hi];
+  }
+
   function onManualCoordChange() {
     const la1 = parseFloat(document.getElementById("input-lat-min").value);
     const la2 = parseFloat(document.getElementById("input-lat-max").value);
     const lo1 = parseFloat(document.getElementById("input-lon-min").value);
     const lo2 = parseFloat(document.getElementById("input-lon-max").value);
     if (Number.isNaN(la1) || Number.isNaN(la2) || Number.isNaN(lo1) || Number.isNaN(lo2)) return;
-    state.latMin = Math.max(-90, Math.min(la1, la2));
-    state.latMax = Math.min(90, Math.max(la1, la2));
-    state.lonMin = Math.max(-180, Math.min(lo1, lo2));
-    state.lonMax = Math.min(180, Math.max(lo1, lo2));
+    state.latMin = Math.max(-90, Math.min(90, Math.min(la1, la2)));
+    state.latMax = Math.max(-90, Math.min(90, Math.max(la1, la2)));
+    const [normLonMin, normLonMax] = normalizeLonPair(lo1, lo2);
+    state.lonMin = normLonMin;
+    state.lonMax = normLonMax;
     state.regionName = "Custom Box";
+    syncInputs();
     refreshAll();
     maybeAutoQuery();
+  }
+
+  const COUNTRY_ALIASES = {
+    "brasil": "Brazil",
+    "espanha": "Spain",
+    "espana": "Spain",
+    "estados unidos": "United States of America",
+    "eua": "United States of America",
+    "eeuu": "United States of America",
+    "usa": "United States of America",
+    "us": "United States of America",
+    "uk": "United Kingdom",
+    "reino unido": "United Kingdom",
+    "alemanha": "Germany",
+    "alemania": "Germany",
+    "franca": "France",
+    "francia": "France",
+    "italia": "Italy",
+    "japao": "Japan",
+    "japon": "Japan",
+    "russia": "Russia",
+    "rusia": "Russia",
+    "africa do sul": "South Africa",
+    "sudafrica": "South Africa",
+    "nova zelandia": "New Zealand",
+    "nueva zelanda": "New Zealand",
+    "coreia do sul": "South Korea",
+    "corea del sur": "South Korea",
+    "suica": "Switzerland",
+    "suiza": "Switzerland",
+    "suecia": "Sweden",
+    "noruega": "Norway",
+    "grecia": "Greece",
+    "egito": "Egypt",
+    "egipto": "Egypt",
+    "marrocos": "Morocco",
+    "marruecos": "Morocco",
+    "turquia": "Turkey",
+    "polonia": "Poland",
+    "holanda": "Netherlands",
+    "paises baixos": "Netherlands",
+    "paises bajos": "Netherlands",
+    "belgica": "Belgium",
+    "dinamarca": "Denmark",
+    "finlandia": "Finland",
+    "irlanda": "Ireland",
+    "islandia": "Iceland",
+    "hungria": "Hungary",
+    "romenia": "Romania",
+    "rumania": "Romania",
+    "ucrania": "Ukraine",
+    "arabia saudita": "Saudi Arabia",
+    "emirados arabes": "United Arab Emirates",
+    "filipinas": "Philippines",
+    "tailandia": "Thailand",
+    "malasia": "Malaysia",
+    "cingapura": "Singapore",
+    "singapur": "Singapore",
+    "camboja": "Cambodia",
+    "camboya": "Cambodia",
+    "argelia": "Algeria",
+    "etiopia": "Ethiopia",
+    "quenia": "Kenya",
+    "kenia": "Kenya",
+    "nigeria": "Nigeria",
+    "gana": "Ghana",
+    "camaroes": "Cameroon",
+    "camerun": "Cameroon",
+    "mocambique": "Mozambique",
+    "paraguai": "Paraguay",
+    "uruguai": "Uruguay",
+    "equador": "Ecuador",
+    "bolivia": "Bolivia",
+    "peru": "Peru",
+    "mexico": "Mexico",
+    "canada": "Canada",
+    "groenlandia": "Greenland",
+    "groelandia": "Greenland"
+  };
+
+  let countryMatches = [];
+  let countryActiveIdx = -1;
+
+  function normalizeSearchText(str) {
+    return String(str || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim();
+  }
+
+  function closeCountrySearch() {
+    const box = document.getElementById("country-search-results");
+    if (box) box.classList.add("hidden");
+    countryActiveIdx = -1;
+  }
+
+  function onCountrySearchInput(rawVal) {
+    const box = document.getElementById("country-search-results");
+    if (!box) return;
+    const q = normalizeSearchText(rawVal);
+    if (!q) {
+      box.classList.add("hidden");
+      countryMatches = [];
+      countryActiveIdx = -1;
+      return;
+    }
+
+    const aliasTarget = COUNTRY_ALIASES[q] ? normalizeSearchText(COUNTRY_ALIASES[q]) : null;
+    const scored = [];
+    for (const c of WORLD.countries) {
+      const normName = normalizeSearchText(c.n);
+      const normIso = normalizeSearchText(c.i);
+      let score = 0;
+      if (aliasTarget && normName === aliasTarget) score = 100;
+      else if (normName === q || normIso === q) score = 95;
+      else if (normName.startsWith(q)) score = 80;
+      else if (aliasTarget && normName.includes(aliasTarget)) score = 70;
+      else if (normName.includes(q)) score = 50;
+      if (score > 0) scored.push({ c, score });
+    }
+    scored.sort((a, b) => b.score - a.score || a.c.n.localeCompare(b.c.n));
+    countryMatches = scored.slice(0, 8).map(x => x.c);
+    countryActiveIdx = countryMatches.length ? 0 : -1;
+
+    if (!countryMatches.length) {
+      box.innerHTML = `<div class="country-search-item" style="cursor:default;color:var(--fg-muted);">${tr("noCountryMatch")}</div>`;
+      box.classList.remove("hidden");
+      return;
+    }
+
+    box.innerHTML = countryMatches.map((c, idx) => `
+      <button type="button" class="country-search-item${idx === countryActiveIdx ? " active" : ""}" role="option" onmousedown="event.preventDefault(); pickSearchedCountry(${idx})">
+        <span>${c.n}</span>
+        <span class="country-search-cont">${c.c || ""}</span>
+      </button>
+    `).join("");
+    box.classList.remove("hidden");
+  }
+
+  function onCountrySearchKeydown(e) {
+    const box = document.getElementById("country-search-results");
+    if (!box || box.classList.contains("hidden")) {
+      if (e.key === "Enter" && e.target.value.trim()) {
+        onCountrySearchInput(e.target.value);
+        if (countryMatches.length) pickSearchedCountry(0);
+      }
+      return;
+    }
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (!countryMatches.length) return;
+      countryActiveIdx = (countryActiveIdx + 1) % countryMatches.length;
+      updateCountrySearchHighlight();
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (!countryMatches.length) return;
+      countryActiveIdx = (countryActiveIdx - 1 + countryMatches.length) % countryMatches.length;
+      updateCountrySearchHighlight();
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (countryMatches.length) pickSearchedCountry(Math.max(0, countryActiveIdx));
+    } else if (e.key === "Escape") {
+      closeCountrySearch();
+    }
+  }
+
+  function updateCountrySearchHighlight() {
+    const box = document.getElementById("country-search-results");
+    if (!box) return;
+    box.querySelectorAll(".country-search-item").forEach((el, idx) => {
+      el.classList.toggle("active", idx === countryActiveIdx);
+    });
+  }
+
+  function pickSearchedCountry(idx) {
+    const c = countryMatches[idx];
+    if (!c) return;
+    selectCountryBounds(c);
+    const input = document.getElementById("country-search-input");
+    if (input) {
+      input.value = "";
+      input.blur();
+    }
+    closeCountrySearch();
   }
 
   function applyPreset(name, latMin, latMax, lonMin, lonMax) {
@@ -1791,6 +2064,10 @@ esgpull download
         syncCodeMethodUi();
       }
     }
+    const csWrap = document.querySelector(".country-search-wrap");
+    if (csWrap && !csWrap.contains(e.target)) {
+      closeCountrySearch();
+    }
   });
 
   document.addEventListener("keydown", (e) => {
@@ -1873,6 +2150,9 @@ esgpull download
     setProjection,
     setToolMode,
     onManualCoordChange,
+    onCountrySearchInput,
+    onCountrySearchKeydown,
+    pickSearchedCountry,
     applyPreset,
     resetGlobal,
     renderVariablesTable,

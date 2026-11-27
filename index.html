@@ -26,7 +26,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles/main.css?v=10" />
+  <link rel="stylesheet" href="styles/main.css?v=11" />
 </head>
 <body>
 
@@ -175,33 +175,54 @@
 
           <div class="grid-2">
             <div class="field">
-              <label for="input-lat-min" data-i18n="latMin">Lat Min (°N)</label>
+              <label for="input-lat-min" data-i18n="latMin">Latitude (Min)</label>
               <input id="input-lat-min" class="mono" type="number" min="-90" max="90" step="0.5" value="-56" onchange="onManualCoordChange()" />
             </div>
             <div class="field">
-              <label for="input-lat-max" data-i18n="latMax">Lat Max (°N)</label>
+              <label for="input-lat-max" data-i18n="latMax">Latitude (Max)</label>
               <input id="input-lat-max" class="mono" type="number" min="-90" max="90" step="0.5" value="13" onchange="onManualCoordChange()" />
             </div>
             <div class="field">
-              <label for="input-lon-min" data-i18n="lonMin">Lon Min (°E)</label>
-              <input id="input-lon-min" class="mono" type="number" min="-180" max="180" step="0.5" value="-82" onchange="onManualCoordChange()" />
+              <label for="input-lon-min" data-i18n="lonMin">Longitude (Min)</label>
+              <input id="input-lon-min" class="mono" type="number" min="-180" max="360" step="0.5" value="-82" onchange="onManualCoordChange()" title="Accepts -180..180 or 0..360" data-i18n-title="lonInputTitle" />
             </div>
             <div class="field">
-              <label for="input-lon-max" data-i18n="lonMax">Lon Max (°E)</label>
-              <input id="input-lon-max" class="mono" type="number" min="-180" max="180" step="0.5" value="-34" onchange="onManualCoordChange()" />
+              <label for="input-lon-max" data-i18n="lonMax">Longitude (Max)</label>
+              <input id="input-lon-max" class="mono" type="number" min="-180" max="360" step="0.5" value="-34" onchange="onManualCoordChange()" title="Accepts -180..180 or 0..360" data-i18n-title="lonInputTitle" />
             </div>
+          </div>
+
+          <div class="country-search-wrap">
+            <div class="country-search-field">
+              <svg class="country-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input id="country-search-input" type="text" autocomplete="off" placeholder="Jump to country (e.g. Brazil, Spain, Japan)..." data-i18n-placeholder="countrySearchPlaceholder" aria-label="Jump to country" oninput="onCountrySearchInput(this.value)" onkeydown="onCountrySearchKeydown(event)" onfocus="onCountrySearchInput(this.value)" />
+            </div>
+            <div id="country-search-results" class="country-search-results hidden" role="listbox"></div>
           </div>
 
           <div class="diag-box">
             <div class="diag-heading" data-i18n="eligibilityHeading">Regional Eligibility Summary</div>
             <div class="grid-2">
               <div class="stat-tile">
-                <div class="muted small" data-i18n="globalAreaPct">Global Area %</div>
-                <div id="diag-area-pct" class="stat-val mono">—</div>
+                <div class="muted small" data-i18n="areaStatLabel">Area</div>
+                <div class="stat-val mono"><span id="diag-area-pct">—</span> <span id="diag-area-km2" class="stat-sub-inline"></span></div>
               </div>
               <div class="stat-tile">
-                <div class="muted small" data-i18n="surfaceMask">Surface Mask</div>
-                <div id="diag-surface" class="stat-val">—</div>
+                <div class="muted small" data-i18n="gridCellsLabel">1°×1° Grid Cells</div>
+                <div id="diag-grid-cells" class="stat-val mono">—</div>
+              </div>
+            </div>
+            <div class="surface-split">
+              <div class="surface-split-labels small">
+                <span id="diag-surface-left" class="muted">—</span>
+                <span id="diag-surface-right" class="muted">—</span>
+              </div>
+              <div class="surface-split-bar" aria-hidden="true">
+                <div id="bar-land" class="bar-land" style="width:50%"></div>
+                <div id="bar-ocean" class="bar-ocean" style="width:50%"></div>
               </div>
             </div>
             <div class="small countries-line">
@@ -763,7 +784,7 @@
   </main>
 
   <script src="data/world-50m.js?v=2"></script>
-  <script src="src/i18n.js?v=4"></script>
-  <script src="src/app.js?v=9"></script>
+  <script src="src/i18n.js?v=5"></script>
+  <script src="src/app.js?v=10"></script>
 </body>
 </html>

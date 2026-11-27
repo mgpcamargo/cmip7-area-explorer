@@ -694,6 +694,80 @@ canvas#world-map {
 
 .field input { width: 100%; }
 
+.country-search-wrap {
+  position: relative;
+}
+
+.country-search-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.country-search-icon {
+  position: absolute;
+  left: 9px;
+  width: 14px;
+  height: 14px;
+  color: var(--fg-muted);
+  pointer-events: none;
+}
+
+.country-search-field input {
+  width: 100%;
+  padding-left: 30px;
+  font-size: 0.78rem;
+}
+
+.country-search-results {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 210px;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  box-shadow: 0 10px 24px rgba(3, 11, 51, 0.25);
+  z-index: 35;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+html:not(.light) .country-search-results {
+  background: #0c1c52;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.52);
+}
+
+.country-search-item {
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: var(--fg);
+  padding: 6px 9px;
+  border-radius: 4px;
+  font-size: 0.77rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+}
+
+.country-search-item:hover,
+.country-search-item.active {
+  background: var(--surface-alt);
+  color: var(--primary);
+}
+
+.country-search-cont {
+  font-size: 0.68rem;
+  color: var(--fg-muted);
+}
+
 .diag-box {
   background: var(--surface-subtle);
   border: 1px solid var(--border);
@@ -701,9 +775,64 @@ canvas#world-map {
   padding: 12px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  gap: 10px;
+  justify-content: flex-start;
+  gap: 11px;
   flex: 1;
+}
+
+.stat-sub-inline {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--fg-muted);
+}
+
+.surface-split {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.surface-split-labels {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.surface-split-labels strong {
+  color: var(--fg);
+  font-weight: 600;
+}
+
+.surface-split-bar {
+  height: 6px;
+  border-radius: 99px;
+  overflow: hidden;
+  display: flex;
+  background: var(--surface-alt);
+}
+
+.bar-land {
+  background: #10b981;
+  transition: width 0.16s ease;
+}
+
+.bar-ocean {
+  background: #0ea5e9;
+  transition: width 0.16s ease;
+}
+
+html:not(.light) .bar-land {
+  background: #34d399;
+}
+
+html:not(.light) .bar-ocean {
+  background: #33d6ee;
+}
+
+.diag-box .realm-pills {
+  margin-top: auto;
+  padding-top: 2px;
 }
 
 .diag-heading {
