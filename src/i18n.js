@@ -868,10 +868,7 @@
       const h = new URLSearchParams(rawHash).get("lang");
       if (h) return normalizeLang(h);
     }
-    try {
-      const saved = localStorage.getItem("cmip7_lang");
-      if (saved) return normalizeLang(saved);
-    } catch (_) {}
+    try { localStorage.removeItem("cmip7_lang"); } catch (_) {}
     return "en";
   }
 
@@ -970,7 +967,6 @@
     const next = normalizeLang(lang);
     currentLang = next;
     if (persist !== false) {
-      try { localStorage.setItem("cmip7_lang", next); } catch (_) {}
       try {
         const url = new URL(window.location.href);
         if (next === "en") url.searchParams.delete("lang");
