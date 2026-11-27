@@ -65,9 +65,6 @@
       latMax: "Lat Max (°N)",
       lonMin: "Lon Min (°E)",
       lonMax: "Lon Max (°E)",
-      lonConvention: "CMIP Longitude Convention (Python / xarray)",
-      lonMode180: "-180° to 180°",
-      lonMode360: "0° to 360° (CMIP)",
       eligibilityHeading: "Regional Eligibility Summary",
       globalAreaPct: "Global Area %",
       surfaceMask: "Surface Mask",
@@ -185,6 +182,15 @@
       codeTabPython: "Python Area Crop ★",
       codeTabStac: "STAC API (cURL)",
       codeTabCli: "ESGpull / CDO CLI",
+      codeOtherMethods: "Other methods",
+      codeOptPyTitle: "Python Area Crop ★ (Recommended)",
+      codeOptPyDesc: "Downloads & crops only your region into a local .nc file. Best for most researchers & students.",
+      codeOptStacTitle: "STAC API (cURL)",
+      codeOptStacDesc: "Fetches raw JSON catalog metadata & file URLs. Best for developers and shell/jq pipelines.",
+      codeOptCliTitle: "ESGpull / CDO CLI",
+      codeOptCliDesc: "Terminal bulk download & CDO cropping commands. Best for Linux/HPC clusters & multi-model archives.",
+      btnDownloadPy: "Download .py",
+      btnDownloadSh: "Download .sh",
       btnCopy: "Copy",
       btnCopied: "Copied!",
       visualGuidePdf: "docs/CMIP7_Area_Explorer_Visual_Guide.pdf",
@@ -209,9 +215,9 @@
         <li><strong style="color:var(--fg);">Core &amp; ScenarioMIP experiments:</strong> Includes <span class="mono">historical</span>, <span class="mono">esm-hist</span> (emissions-driven), <span class="mono">piControl</span>, <span class="mono">amip</span>, idealized CO₂ runs, and <span class="mono">scen7-vl</span> / <span class="mono">scen7-m</span> / <span class="mono">scen7-h</span> projections.</li>`,
       guide04Title: "Choosing a Download Workflow",
       guide04Body: `
-        <li><strong style="color:var(--fg);">Regional subset only:</strong> Export <strong style="color:var(--fg);">Python Subset (.py) · Area Only ★</strong> (or copy Step 03) and run it locally in Python to fetch and save a cropped <span class="mono">.nc</span> file.</li>
+        <li><strong style="color:var(--fg);">Regional subset only:</strong> Click <strong style="color:var(--fg);">Download .py</strong> (or <strong style="color:var(--fg);">Copy</strong>) under <strong style="color:var(--fg);">Python Area Crop ★</strong> in Step 03 and run it locally in Python to fetch and save a cropped <span class="mono">.nc</span> file.</li>
         <li><strong style="color:var(--fg);">Direct full-globe NetCDF files:</strong> Use <strong style="color:var(--fg);">Download Global .nc ↗</strong> or <strong style="color:var(--fg);">wget (.sh)</strong>, then crop locally with <span class="mono">cdo sellonlatbox,...</span>.</li>
-        <li><strong style="color:var(--fg);">Large multi-model ensembles:</strong> Use <strong>Globus</strong> via <a href="https://metagrid.esgf-west.org/" target="_blank" rel="noopener noreferrer">ESGF MetaGrid</a> or the <span class="mono">ESGpull</span> CLI (<span class="mono">v0.10.0+</span>).</li>`,
+        <li><strong style="color:var(--fg);">Advanced / HPC workflows:</strong> Open <strong style="color:var(--fg);">Other methods ▾</strong> in Step 03 for raw <span class="mono">STAC API (cURL)</span> queries, <span class="mono">ESGpull</span> CLI (<span class="mono">v0.10.0+</span>), or <strong>Globus</strong> via <a href="https://metagrid.esgf-west.org/" target="_blank" rel="noopener noreferrer">ESGF MetaGrid</a>.</li>`,
       glossaryTitle: "Glossary",
       thAcronym: "Acronym",
       thMeaning: "Meaning",
@@ -264,8 +270,8 @@
         ],
         [
           "03",
-          'Should I select <span class="mono">0° to 360° (CMIP)</span> or <span class="mono">-180° to 180°</span> for longitude slicing?',
-          'Most native climate model grids in CMIP6/CMIP7 store longitude from <span class="mono">0°</span> to <span class="mono">360°E</span>, which is why <span class="mono">0° to 360° (CMIP)</span> is the default. If your bounding box crosses the Prime Meridian (<span class="mono">0°</span>, such as Europe, Mediterranean, or West Africa), slicing <span class="mono">0..360</span> directly would invert the interval, so our Python generator automatically inserts <span class="mono">ds.assign_coords(lon=((ds.lon + 180) % 360) - 180).sortby("lon")</span> before calling <span class="mono">ds.sel(...)</span>.'
+          'How are <span class="mono">0°–360°</span> longitudes and Prime Meridian (<span class="mono">0°</span>) crossings handled?',
+          'Climate models store native longitudes on either <span class="mono">0°..360°E</span> or <span class="mono">-180°..180°</span>. To prevent empty slices or coordinate mismatches, the Step 03 Python script automatically checks <span class="mono">ds.lon.max() &gt; 180</span> at runtime and normalizes longitudes to <span class="mono">-180..180</span> before calling <span class="mono">ds.sel(...)</span>, so regions crossing <span class="mono">0°E</span> (such as Europe, Mediterranean, or West Africa) work seamlessly.'
         ],
         [
           "04",
@@ -343,9 +349,6 @@
       latMax: "Lat Máx (°N)",
       lonMin: "Lon Mín (°E)",
       lonMax: "Lon Máx (°E)",
-      lonConvention: "Convenção de Longitude CMIP (Python / xarray)",
-      lonMode180: "-180° a 180°",
-      lonMode360: "0° a 360° (CMIP)",
       eligibilityHeading: "Resumo de Elegibilidade Regional",
       globalAreaPct: "% da Área Global",
       surfaceMask: "Máscara de Superfície",
@@ -463,6 +466,15 @@
       codeTabPython: "Recorte Python ★",
       codeTabStac: "STAC API (cURL)",
       codeTabCli: "ESGpull / CDO CLI",
+      codeOtherMethods: "Outros métodos",
+      codeOptPyTitle: "Recorte Python ★ (Recomendado)",
+      codeOptPyDesc: "Baixa e recorta apenas sua região em um arquivo .nc local. Ideal para a maioria dos pesquisadores e estudantes.",
+      codeOptStacTitle: "STAC API (cURL)",
+      codeOptStacDesc: "Retorna metadados JSON brutos e URLs do catálogo. Ideal para desenvolvedores e pipelines shell/jq.",
+      codeOptCliTitle: "ESGpull / CDO CLI",
+      codeOptCliDesc: "Comandos de terminal para download em massa e recorte com CDO. Ideal para clusters Linux/HPC e múltiplos modelos.",
+      btnDownloadPy: "Baixar .py",
+      btnDownloadSh: "Baixar .sh",
       btnCopy: "Copiar",
       btnCopied: "Copiado!",
       visualGuidePdf: "docs/CMIP7_Area_Explorer_Visual_Guide_PT-BR.pdf",
@@ -487,9 +499,9 @@
         <li><strong style="color:var(--fg);">Experimentos principais e ScenarioMIP:</strong> Inclui <span class="mono">historical</span>, <span class="mono">esm-hist</span> (guiado por emissões), <span class="mono">piControl</span>, <span class="mono">amip</span>, simulações idealizadas de CO₂ e projeções <span class="mono">scen7-vl</span> / <span class="mono">scen7-m</span> / <span class="mono">scen7-h</span>.</li>`,
       guide04Title: "Escolhendo o Fluxo de Download",
       guide04Body: `
-        <li><strong style="color:var(--fg);">Apenas recorte regional:</strong> Exporte <strong style="color:var(--fg);">Recorte Python (.py) · Somente Área ★</strong> (ou copie o Passo 03) e execute localmente em Python para baixar e salvar um <span class="mono">.nc</span> recortado.</li>
+        <li><strong style="color:var(--fg);">Apenas recorte regional:</strong> Clique em <strong style="color:var(--fg);">Baixar .py</strong> (ou <strong style="color:var(--fg);">Copiar</strong>) em <strong style="color:var(--fg);">Recorte Python ★</strong> no Passo 03 e execute localmente em Python para salvar um arquivo <span class="mono">.nc</span> recortado.</li>
         <li><strong style="color:var(--fg);">Arquivos NetCDF globais diretos:</strong> Use <strong style="color:var(--fg);">Baixar .nc Global ↗</strong> ou <strong style="color:var(--fg);">wget (.sh)</strong> e depois recorte localmente com <span class="mono">cdo sellonlatbox,...</span>.</li>
-        <li><strong style="color:var(--fg);">Grandes conjuntos multimodelos:</strong> Use <strong>Globus</strong> pelo <a href="https://metagrid.esgf-west.org/" target="_blank" rel="noopener noreferrer">ESGF MetaGrid</a> ou a CLI <span class="mono">ESGpull</span> (<span class="mono">v0.10.0+</span>).</li>`,
+        <li><strong style="color:var(--fg);">Fluxos avançados / HPC:</strong> Abra <strong style="color:var(--fg);">Outros métodos ▾</strong> no Passo 03 para consultas <span class="mono">STAC API (cURL)</span>, CLI <span class="mono">ESGpull</span> (<span class="mono">v0.10.0+</span>) ou <strong>Globus</strong> via <a href="https://metagrid.esgf-west.org/" target="_blank" rel="noopener noreferrer">ESGF MetaGrid</a>.</li>`,
       glossaryTitle: "Glossário",
       thAcronym: "Sigla",
       thMeaning: "Significado",
@@ -542,8 +554,8 @@
         ],
         [
           "03",
-          'Devo escolher <span class="mono">0° a 360° (CMIP)</span> ou <span class="mono">-180° a 180°</span> para recortar longitudes?',
-          'A maioria das grades nativas de modelos CMIP6/CMIP7 armazena longitudes de <span class="mono">0°</span> a <span class="mono">360°E</span>, motivo pelo qual <span class="mono">0° a 360° (CMIP)</span> é o padrão. Se a sua caixa cruzar o Meridiano de Greenwich (<span class="mono">0°</span>, como Europa, Mediterrâneo ou África Ocidental), recortar diretamente em <span class="mono">0..360</span> inverteria o intervalo; por isso, o gerador Python insere automaticamente <span class="mono">ds.assign_coords(lon=((ds.lon + 180) % 360) - 180).sortby("lon")</span> antes de chamar <span class="mono">ds.sel(...)</span>.'
+          'Como são tratadas longitudes <span class="mono">0°–360°</span> e áreas que cruzam o Meridiano de Greenwich (<span class="mono">0°</span>)?',
+          'Modelos climáticos armazenam longitudes nativas em <span class="mono">0°..360°E</span> ou <span class="mono">-180°..180°</span>. Para evitar recortes vazios ou incompatibilidades, o script Python do Passo 03 verifica automaticamente <span class="mono">ds.lon.max() &gt; 180</span> em tempo de execução e normaliza as longitudes para <span class="mono">-180..180</span> antes de chamar <span class="mono">ds.sel(...)</span>, funcionando automaticamente mesmo em áreas que cruzam <span class="mono">0°E</span> (como Europa, Mediterrâneo ou África Ocidental).'
         ],
         [
           "04",
@@ -621,9 +633,6 @@
       latMax: "Lat Máx (°N)",
       lonMin: "Lon Mín (°E)",
       lonMax: "Lon Máx (°E)",
-      lonConvention: "Convención de Longitud CMIP (Python / xarray)",
-      lonMode180: "-180° a 180°",
-      lonMode360: "0° a 360° (CMIP)",
       eligibilityHeading: "Resumen de Elegibilidad Regional",
       globalAreaPct: "% del Área Global",
       surfaceMask: "Máscara de Superficie",
@@ -741,6 +750,15 @@
       codeTabPython: "Recorte Python ★",
       codeTabStac: "STAC API (cURL)",
       codeTabCli: "ESGpull / CDO CLI",
+      codeOtherMethods: "Otros métodos",
+      codeOptPyTitle: "Recorte Python ★ (Recomendado)",
+      codeOptPyDesc: "Descarga y recorta solo tu región en un archivo .nc local. Ideal para la mayoría de investigadores y estudiantes.",
+      codeOptStacTitle: "STAC API (cURL)",
+      codeOptStacDesc: "Obtiene metadatos JSON sin procesar y URLs del catálogo. Ideal para desarrolladores y pipelines shell/jq.",
+      codeOptCliTitle: "ESGpull / CDO CLI",
+      codeOptCliDesc: "Comandos de terminal para descarga masiva y recorte con CDO. Ideal para clústeres Linux/HPC y múltiples modelos.",
+      btnDownloadPy: "Descargar .py",
+      btnDownloadSh: "Descargar .sh",
       btnCopy: "Copiar",
       btnCopied: "¡Copiado!",
       visualGuidePdf: "docs/CMIP7_Area_Explorer_Visual_Guide_ES.pdf",
@@ -765,9 +783,9 @@
         <li><strong style="color:var(--fg);">Experimentos principales y ScenarioMIP:</strong> Incluye <span class="mono">historical</span>, <span class="mono">esm-hist</span> (impulsado por emisiones), <span class="mono">piControl</span>, <span class="mono">amip</span>, simulaciones idealizadas de CO₂ y proyecciones <span class="mono">scen7-vl</span> / <span class="mono">scen7-m</span> / <span class="mono">scen7-h</span>.</li>`,
       guide04Title: "Cómo Elegir un Flujo de Descarga",
       guide04Body: `
-        <li><strong style="color:var(--fg);">Solo recorte regional:</strong> Exporta <strong style="color:var(--fg);">Recorte Python (.py) · Solo Área ★</strong> (o copia el Paso 03) y ejecútalo localmente en Python para descargar y guardar un <span class="mono">.nc</span> recortado.</li>
+        <li><strong style="color:var(--fg);">Solo recorte regional:</strong> Haz clic en <strong style="color:var(--fg);">Descargar .py</strong> (o <strong style="color:var(--fg);">Copiar</strong>) en <strong style="color:var(--fg);">Recorte Python ★</strong> en el Paso 03 y ejecútalo localmente en Python para guardar un archivo <span class="mono">.nc</span> recortado.</li>
         <li><strong style="color:var(--fg);">Archivos NetCDF globales directos:</strong> Usa <strong style="color:var(--fg);">Descargar .nc Global ↗</strong> o <strong style="color:var(--fg);">wget (.sh)</strong> y luego recorta localmente con <span class="mono">cdo sellonlatbox,...</span>.</li>
-        <li><strong style="color:var(--fg);">Grandes ensambles multimodelo:</strong> Usa <strong>Globus</strong> mediante <a href="https://metagrid.esgf-west.org/" target="_blank" rel="noopener noreferrer">ESGF MetaGrid</a> o la CLI <span class="mono">ESGpull</span> (<span class="mono">v0.10.0+</span>).</li>`,
+        <li><strong style="color:var(--fg);">Flujos avanzados / HPC:</strong> Abre <strong style="color:var(--fg);">Otros métodos ▾</strong> en el Paso 03 para consultas <span class="mono">STAC API (cURL)</span>, CLI <span class="mono">ESGpull</span> (<span class="mono">v0.10.0+</span>) o <strong>Globus</strong> mediante <a href="https://metagrid.esgf-west.org/" target="_blank" rel="noopener noreferrer">ESGF MetaGrid</a>.</li>`,
       glossaryTitle: "Glosario",
       thAcronym: "Sigla",
       thMeaning: "Significado",
@@ -820,8 +838,8 @@
         ],
         [
           "03",
-          '¿Debo elegir <span class="mono">0° a 360° (CMIP)</span> o <span class="mono">-180° a 180°</span> para recortar longitudes?',
-          'La mayoría de las grillas nativas de los modelos CMIP6/CMIP7 almacenan la longitud de <span class="mono">0°</span> a <span class="mono">360°E</span>, por lo que <span class="mono">0° a 360° (CMIP)</span> es la opción predeterminada. Si tu caja cruza el Meridiano de Greenwich (<span class="mono">0°</span>, como Europa, el Mediterráneo o África Occidental), recortar directamente <span class="mono">0..360</span> invertiría el intervalo; por ello, el generador Python inserta automáticamente <span class="mono">ds.assign_coords(lon=((ds.lon + 180) % 360) - 180).sortby("lon")</span> antes de llamar a <span class="mono">ds.sel(...)</span>.'
+          '¿Cómo se manejan las longitudes <span class="mono">0°–360°</span> y las áreas que cruzan el Meridiano de Greenwich (<span class="mono">0°</span>)?',
+          'Los modelos climáticos almacenan longitudes nativas en <span class="mono">0°..360°E</span> o <span class="mono">-180°..180°</span>. Para evitar recortes vacíos o desajustes, el script Python del Paso 03 comprueba automáticamente <span class="mono">ds.lon.max() &gt; 180</span> en tiempo de ejecución y normaliza las longitudes a <span class="mono">-180..180</span> antes de llamar a <span class="mono">ds.sel(...)</span>, funcionando sin ajustes manuales incluso en áreas que cruzan <span class="mono">0°E</span> (como Europa, el Mediterráneo o África Occidental).'
         ],
         [
           "04",

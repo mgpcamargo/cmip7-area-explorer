@@ -26,7 +26,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles/main.css?v=9" />
+  <link rel="stylesheet" href="styles/main.css?v=10" />
 </head>
 <body>
 
@@ -189,14 +189,6 @@
             <div class="field">
               <label for="input-lon-max" data-i18n="lonMax">Lon Max (°E)</label>
               <input id="input-lon-max" class="mono" type="number" min="-180" max="180" step="0.5" value="-34" onchange="onManualCoordChange()" />
-            </div>
-          </div>
-
-          <div>
-            <span class="field-group-label" data-i18n="lonConvention">CMIP Longitude Convention (Python / xarray)</span>
-            <div class="seg-group full-seg">
-              <button id="lon-mode-180" onclick="setLonMode('180')" data-i18n="lonMode180">-180° to 180°</button>
-              <button id="lon-mode-360" class="active" onclick="setLonMode('360')" data-i18n="lonMode360">0° to 360° (CMIP)</button>
             </div>
           </div>
 
@@ -372,15 +364,34 @@
             </div>
             <p class="muted small section-desc"><span data-i18n="selectionLabel">Selection:</span> <strong id="summary-selection" class="mono" style="color:var(--fg);">tas_tavg-h2m-hxy-u · historical</strong></p>
           </div>
-          <div class="seg-group" role="tablist" aria-label="Export method">
-            <button id="code-tab-python" class="active" onclick="switchCodeTab('python')" data-i18n="codeTabPython">Python Area Crop ★</button>
-            <button id="code-tab-stac" onclick="switchCodeTab('stac')" data-i18n="codeTabStac">STAC API (cURL)</button>
-            <button id="code-tab-cli" onclick="switchCodeTab('cli')" data-i18n="codeTabCli">ESGpull / CDO CLI</button>
+          <div class="code-method-wrap">
+            <button id="code-tab-python" class="code-primary-btn active" onclick="switchCodeTab('python')" data-i18n="codeTabPython">Python Area Crop ★</button>
+            <button id="code-more-btn" class="code-more-btn" onclick="toggleCodeMethodsMenu(event)" aria-expanded="false" aria-haspopup="true">
+              <span id="code-more-label" data-i18n="codeOtherMethods">Other methods</span>
+              <span class="code-caret" aria-hidden="true">▾</span>
+            </button>
+            <div id="code-methods-menu" class="code-methods-popover hidden" role="menu" aria-label="Export methods">
+              <button id="code-opt-python" class="code-method-opt active" role="menuitem" onclick="switchCodeTab('python')">
+                <span class="code-method-opt-title" data-i18n="codeOptPyTitle">Python Area Crop ★ (Recommended)</span>
+                <span class="code-method-opt-desc" data-i18n="codeOptPyDesc">Downloads &amp; crops only your region into a local .nc file. Best for most researchers &amp; students.</span>
+              </button>
+              <button id="code-opt-stac" class="code-method-opt" role="menuitem" onclick="switchCodeTab('stac')">
+                <span class="code-method-opt-title" data-i18n="codeOptStacTitle">STAC API (cURL)</span>
+                <span class="code-method-opt-desc" data-i18n="codeOptStacDesc">Fetches raw JSON catalog metadata &amp; file URLs. Best for developers and shell/jq pipelines.</span>
+              </button>
+              <button id="code-opt-cli" class="code-method-opt" role="menuitem" onclick="switchCodeTab('cli')">
+                <span class="code-method-opt-title" data-i18n="codeOptCliTitle">ESGpull / CDO CLI</span>
+                <span class="code-method-opt-desc" data-i18n="codeOptCliDesc">Terminal bulk download &amp; CDO cropping commands. Best for Linux/HPC clusters &amp; multi-model archives.</span>
+              </button>
+            </div>
           </div>
         </div>
 
         <div class="code-box">
-          <button id="copy-btn" class="sm copy-btn" onclick="copyCode()" data-i18n="btnCopy">Copy</button>
+          <div class="code-actions">
+            <button id="download-code-btn" class="sm download-code-btn" onclick="downloadCurrentScript()">⬇ <span id="download-code-label" data-i18n="btnDownloadPy">Download .py</span></button>
+            <button id="copy-btn" class="sm copy-btn" onclick="copyCode()" data-i18n="btnCopy">Copy</button>
+          </div>
           <pre id="code-output" class="mono"></pre>
         </div>
       </section>
@@ -449,9 +460,9 @@
             <h2 data-i18n="guide04Title">Choosing a Download Workflow</h2>
           </div>
           <ul class="guide-list muted" data-i18n-html="guide04Body">
-            <li><strong style="color:var(--fg);">Regional subset only:</strong> Export <strong style="color:var(--fg);">Python Subset (.py) · Area Only ★</strong> (or copy Step 03) and run it locally in Python to fetch and save a cropped <span class="mono">.nc</span> file.</li>
+            <li><strong style="color:var(--fg);">Regional subset only:</strong> Click <strong style="color:var(--fg);">Download .py</strong> (or <strong style="color:var(--fg);">Copy</strong>) under <strong style="color:var(--fg);">Python Area Crop ★</strong> in Step 03 and run it locally in Python to fetch and save a cropped <span class="mono">.nc</span> file.</li>
             <li><strong style="color:var(--fg);">Direct full-globe NetCDF files:</strong> Use <strong style="color:var(--fg);">Download Global .nc ↗</strong> or <strong style="color:var(--fg);">wget (.sh)</strong>, then crop locally with <span class="mono">cdo sellonlatbox,...</span>.</li>
-            <li><strong style="color:var(--fg);">Large multi-model ensembles:</strong> Use <strong>Globus</strong> via <a href="https://metagrid.esgf-west.org/" target="_blank" rel="noopener noreferrer">ESGF MetaGrid</a> or the <span class="mono">ESGpull</span> CLI (<span class="mono">v0.10.0+</span>).</li>
+            <li><strong style="color:var(--fg);">Advanced / HPC workflows:</strong> Open <strong style="color:var(--fg);">Other methods ▾</strong> in Step 03 for raw <span class="mono">STAC API (cURL)</span> queries, <span class="mono">ESGpull</span> CLI (<span class="mono">v0.10.0+</span>), or <strong>Globus</strong> via <a href="https://metagrid.esgf-west.org/" target="_blank" rel="noopener noreferrer">ESGF MetaGrid</a>.</li>
           </ul>
         </div>
       </div>
@@ -666,9 +677,9 @@
           </details>
 
           <details class="faq-item">
-            <summary><span class="faq-num mono">03</span> Should I select <span class="mono">0° to 360° (CMIP)</span> or <span class="mono">-180° to 180°</span> for longitude slicing?</summary>
+            <summary><span class="faq-num mono">03</span> How are <span class="mono">0°–360°</span> longitudes and Prime Meridian (<span class="mono">0°</span>) crossings handled?</summary>
             <div class="faq-body muted">
-              Most native climate model grids in CMIP6/CMIP7 store longitude from <span class="mono">0°</span> to <span class="mono">360°E</span>, which is why <span class="mono">0° to 360° (CMIP)</span> is the default. If your bounding box crosses the Prime Meridian (<span class="mono">0°</span>, such as Europe, Mediterranean, or West Africa), slicing <span class="mono">0..360</span> directly would invert the interval—so our Python generator automatically inserts <span class="mono">ds.assign_coords(lon=((ds.lon + 180) % 360) - 180).sortby("lon")</span> before calling <span class="mono">ds.sel(...)</span>.
+              Climate models store native longitudes on either <span class="mono">0°..360°E</span> or <span class="mono">-180°..180°</span>. To prevent empty slices or coordinate mismatches, the Step 03 Python script automatically checks <span class="mono">ds.lon.max() &gt; 180</span> at runtime and normalizes longitudes to <span class="mono">-180..180</span> before calling <span class="mono">ds.sel(...)</span>, so regions crossing <span class="mono">0°E</span> (such as Europe, Mediterranean, or West Africa) work seamlessly.
             </div>
           </details>
 
@@ -752,7 +763,7 @@
   </main>
 
   <script src="data/world-50m.js?v=2"></script>
-  <script src="src/i18n.js?v=3"></script>
-  <script src="src/app.js?v=8"></script>
+  <script src="src/i18n.js?v=4"></script>
+  <script src="src/app.js?v=9"></script>
 </body>
 </html>

@@ -62,12 +62,12 @@
     lonMin: -82,
     lonMax: -34,
     regionName: "South America",
-    lonMode: "360",
     projection: "naturalEarth",
     basemap: "atlas", // "atlas" | "satellite"
     showBorders: true,
     showGrid: true,
     layersMenuOpen: false,
+    codeMenuOpen: false,
     toolMode: "draw",
     zoom: 1,
     panX: 0,
@@ -1072,13 +1072,6 @@
 
   function resetGlobal() { applyPreset("Global", -90, 90, -180, 180); }
 
-  function setLonMode(mode) {
-    state.lonMode = mode;
-    document.getElementById("lon-mode-360").classList.toggle("active", mode === "360");
-    document.getElementById("lon-mode-180").classList.toggle("active", mode === "180");
-    updateGeneratedCode();
-  }
-
   function isVarEligible(v) {
     if (v.domain === "seaIce") return (state.surface.hasOcean && state.surface.hasPolar) ? { ok: true, msg: tr("eligPolarOk") } : { ok: false, msg: tr("eligPolarNo") };
     if (v.mask === "lnd") return state.surface.hasLand ? { ok: true, msg: tr("eligLandOk") } : { ok: false, msg: tr("eligLandNo") };
@@ -1123,8 +1116,6 @@
     maybeAutoQuery();
   }
 
-  function to360(lon) { return lon < 0 ? lon + 360 : lon; }
-
   function buildPythonCode(sourceIds) {
     const v = state.selectedVar;
     const exp = document.getElementById("select-experiment").value;
@@ -1137,12 +1128,10 @@
       ? `\n    source_id=${JSON.stringify(sourceIds)},`
       : "";
 
-    const use360 = state.lonMode === "360";
-    const lonMinStr = use360 ? to360(state.lonMin) : state.lonMin;
-    const lonMaxStr = use360 ? to360(state.lonMax) : state.lonMax;
-    const sliceLogic = (use360 && state.lonMin < 0 && state.lonMax > 0)
-      ? `# Box crosses Prime Meridian (0°): roll 0..360 coordinates to -180..180 before slicing\nds = ds.assign_coords(lon=((ds.lon + 180) % 360) - 180).sortby("lon")\nsubset = ds.sel(lat=slice(${state.latMin}, ${state.latMax}), lon=slice(${state.lonMin}, ${state.lonMax}), time=slice("${tStart}", "${tEnd}"))`
-      : `subset = ds.sel(lat=slice(${state.latMin}, ${state.latMax}), lon=slice(${lonMinStr}, ${lonMaxStr}), time=slice("${tStart}", "${tEnd}"))`;
+    const sliceLogic = `# Auto-normalize longitude (handles both 0..360 and -180..180 grids, including 0°E crossings)
+if float(ds.lon.max()) > 180:
+    ds = ds.assign_coords(lon=((ds.lon + 180) % 360) - 180).sortby("lon")
+subset = ds.sel(lat=slice(${state.latMin}, ${state.latMax}), lon=slice(${state.lonMin}, ${state.lonMax}), time=slice("${tStart}", "${tEnd}"))`;
 
     const slug = state.regionName.toLowerCase().replace(/[^a-z0-9]+/g, "_");
     return `# Requires: pip install intake-esgf xarray zarr netcdf4
@@ -1676,12 +1665,56 @@ esgpull download
     }
   }
 
+  function syncCodeMethodUi() {
+    const pyBtn = document.getElementById("code-tab-python");
+    const moreBtn = document.getElementById("code-more-btn");
+    const moreLabel = document.getElementById("code-more-label");
+    const menu = document.getElementById("code-methods-menu");
+    const dlLabel = document.getElementById("download-code-label");
+
+    if (pyBtn) pyBtn.classList.toggle("active", state.codeTab === "python");
+    if (moreBtn) {
+      moreBtn.classList.toggle("active", state.codeTab !== "python");
+      moreBtn.setAttribute("aria-expanded", state.codeMenuOpen ? "true" : "false");
+    }
+    if (moreLabel) {
+      if (state.codeTab === "stac") moreLabel.textContent = tr("codeTabStac");
+      else if (state.codeTab === "cli") moreLabel.textContent = tr("codeTabCli");
+      else moreLabel.textContent = tr("codeOtherMethods");
+    }
+    if (menu) menu.classList.toggle("hidden", !state.codeMenuOpen);
+    ["python", "stac", "cli"].forEach(t => {
+      const opt = document.getElementById("code-opt-" + t);
+      if (opt) opt.classList.toggle("active", t === state.codeTab);
+    });
+    if (dlLabel) {
+      dlLabel.textContent = state.codeTab === "python" ? tr("btnDownloadPy") : tr("btnDownloadSh");
+    }
+  }
+
+  function toggleCodeMethodsMenu(e) {
+    if (e && e.stopPropagation) e.stopPropagation();
+    state.codeMenuOpen = !state.codeMenuOpen;
+    syncCodeMethodUi();
+  }
+
   function switchCodeTab(tab) {
     state.codeTab = tab;
-    ["python", "stac", "cli"].forEach(t => {
-      document.getElementById("code-tab-" + t).classList.toggle("active", t === tab);
-    });
+    state.codeMenuOpen = false;
+    syncCodeMethodUi();
     updateGeneratedCode();
+  }
+
+  function downloadCurrentScript() {
+    const code = (document.getElementById("code-output") || {}).textContent || "";
+    if (!code) return;
+    if (state.codeTab === "python") {
+      triggerDownload("subset_cmip7.py", code, "text/x-python");
+    } else if (state.codeTab === "stac") {
+      triggerDownload("stac_query_cmip7.sh", "#!/usr/bin/env bash\n" + code + "\n", "text/x-shellscript");
+    } else {
+      triggerDownload("cli_workflow_cmip7.sh", "#!/usr/bin/env bash\n" + code + "\n", "text/x-shellscript");
+    }
   }
 
   function switchMainTab(tab) {
@@ -1742,18 +1775,34 @@ esgpull download
   }
 
   document.addEventListener("pointerdown", (e) => {
-    if (!state.layersMenuOpen) return;
-    const pop = document.getElementById("map-layers-popover");
-    const btn = document.getElementById("layers-toggle-btn");
-    if ((pop && pop.contains(e.target)) || (btn && btn.contains(e.target))) return;
-    state.layersMenuOpen = false;
-    syncLayersUi();
+    if (state.layersMenuOpen) {
+      const pop = document.getElementById("map-layers-popover");
+      const btn = document.getElementById("layers-toggle-btn");
+      if (!((pop && pop.contains(e.target)) || (btn && btn.contains(e.target)))) {
+        state.layersMenuOpen = false;
+        syncLayersUi();
+      }
+    }
+    if (state.codeMenuOpen) {
+      const menu = document.getElementById("code-methods-menu");
+      const btn = document.getElementById("code-more-btn");
+      if (!((menu && menu.contains(e.target)) || (btn && btn.contains(e.target)))) {
+        state.codeMenuOpen = false;
+        syncCodeMethodUi();
+      }
+    }
   });
 
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && state.layersMenuOpen) {
-      state.layersMenuOpen = false;
-      syncLayersUi();
+    if (e.key === "Escape") {
+      if (state.layersMenuOpen) {
+        state.layersMenuOpen = false;
+        syncLayersUi();
+      }
+      if (state.codeMenuOpen) {
+        state.codeMenuOpen = false;
+        syncCodeMethodUi();
+      }
     }
   });
 
@@ -1801,6 +1850,7 @@ esgpull download
   window.__onLanguageChanged = function () {
     syncThemeButtonLabel();
     updateMapAttribution();
+    syncCodeMethodUi();
     analyzeSelectedArea();
     renderVariablesTable();
     renderLiveDatasets();
@@ -1825,7 +1875,6 @@ esgpull download
     onManualCoordChange,
     applyPreset,
     resetGlobal,
-    setLonMode,
     renderVariablesTable,
     selectVariable,
     onFilterChanged,
@@ -1843,6 +1892,8 @@ esgpull download
     downloadWgetScript,
     downloadPythonScript,
     switchCodeTab,
+    toggleCodeMethodsMenu,
+    downloadCurrentScript,
     switchMainTab,
     toggleAllFaq,
     toggleTheme,
@@ -1864,6 +1915,7 @@ esgpull download
   syncInputs();
   syncThemeButtonLabel();
   syncLayersUi();
+  syncCodeMethodUi();
   document.getElementById("proj-ne").classList.toggle("active", state.projection === "naturalEarth");
   document.getElementById("proj-eq").classList.toggle("active", state.projection === "equirect");
   refreshAll();
