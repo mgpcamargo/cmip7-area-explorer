@@ -4,6 +4,8 @@
 
 # CMIP7 Area Explorer & ESGF-NG Web Portal
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24599748.svg)](https://doi.org/10.5281/zenodo.24599748)
+
 - **Live Web App**: **https://mgpcamargo.github.io/cmip7-area-explorer/** (English · Português · Español)
 - **Visual User Guides (PDF)**:
   - English: **[docs/CMIP7_Area_Explorer_Visual_Guide.pdf](docs/CMIP7_Area_Explorer_Visual_Guide.pdf)**
@@ -56,7 +58,7 @@ python3 scripts/cmip7_check_area.py \
 ## Citation & License
 
 - **Software License**: [MIT License](LICENSE) — Copyright (c) 2026 Marcelo G. P. Camargo (Department of Atmospheric Sciences, IAG/USP).
-- **Citation**: Metadata provided in [`CITATION.cff`](CITATION.cff) (use GitHub's *"Cite this repository"* button).
+- **Citation**: Metadata provided in [`CITATION.cff`](CITATION.cff) (use GitHub's *"Cite this repository"* button) · DOI: **[10.5281/zenodo.24599748](https://doi.org/10.5281/zenodo.24599748)**.
 - **Data & Map Credits**:
   - CMIP7 model datasets: WCRP CMIP7 participating modeling groups (**CC-BY-4.0**).
   - Vector boundaries & lakes: Natural Earth 1:50m (**Public Domain**).
