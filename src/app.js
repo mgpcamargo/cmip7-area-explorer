@@ -62,6 +62,7 @@
     lonMin: -82,
     lonMax: -34,
     regionName: "South America",
+    regionTrimmed: false,
     projection: "naturalEarth",
     basemap: "atlas", // "atlas" | "satellite"
     showBorders: true,
@@ -348,18 +349,21 @@
 
     const surfLeft = document.getElementById("diag-surface-left");
     const surfRight = document.getElementById("diag-surface-right");
+    const approx = (landPct > 0 && landPct < 100) ? "~" : "";
     if (surfLeft) {
-      surfLeft.innerHTML = `${tr("surfacePrefix")} <strong>${label}</strong> (${landPct}% ${tr("landWord")})`;
+      surfLeft.innerHTML = `${tr("surfacePrefix")} <strong>${label}</strong> (${approx}${landPct}% ${tr("landWord")})`;
     }
     if (surfRight) {
-      surfRight.textContent = `${oceanPct}% ${tr("oceanWord")}`;
+      surfRight.textContent = `${approx}${oceanPct}% ${tr("oceanWord")}`;
     }
     const barLand = document.getElementById("bar-land");
     const barOcean = document.getElementById("bar-ocean");
     if (barLand) barLand.style.width = landPct + "%";
     if (barOcean) barOcean.style.width = oceanPct + "%";
 
-    document.getElementById("region-label").textContent = trRegion(state.regionName);
+    const regionLabelEl = document.getElementById("region-label");
+    regionLabelEl.textContent = trRegion(state.regionName);
+    regionLabelEl.title = state.regionTrimmed ? tr("primaryLandmassTooltip") : "";
 
     const countriesEl = document.getElementById("diag-countries");
     if (countriesList.length === 0) {
@@ -921,13 +925,14 @@
   function selectCountryBounds(country) {
     if (!country || !country.b) return;
     const b = getPrimaryCountryBounds(country);
+    const trimmed = b !== country.b;
     const latMin = Math.max(-90, floorHalf(b[1]));
     let latMax = Math.min(90, ceilHalf(b[3]));
     const lonMin = Math.max(-180, floorHalf(b[0]));
     let lonMax = Math.min(180, ceilHalf(b[2]));
     if (latMax <= latMin) latMax = Math.min(90, latMin + 0.5);
     if (lonMax <= lonMin) lonMax = Math.min(180, lonMin + 0.5);
-    applyPreset(country.n, latMin, latMax, lonMin, lonMax);
+    applyPreset(country.n, latMin, latMax, lonMin, lonMax, trimmed);
   }
 
   canvas.addEventListener("pointerdown", (e) => {
@@ -1144,6 +1149,7 @@
     state.lonMin = normLonMin;
     state.lonMax = normLonMax;
     state.regionName = "Custom Box";
+    state.regionTrimmed = false;
     syncInputs();
     refreshAll();
     maybeAutoQuery();
@@ -1334,8 +1340,9 @@
     closeCountrySearch();
   }
 
-  function applyPreset(name, latMin, latMax, lonMin, lonMax) {
+  function applyPreset(name, latMin, latMax, lonMin, lonMax, trimmed) {
     state.regionName = name;
+    state.regionTrimmed = !!trimmed;
     state.latMin = latMin; state.latMax = latMax;
     state.lonMin = lonMin; state.lonMax = lonMax;
     syncInputs();
@@ -1401,13 +1408,8 @@
       ? `\n    source_id=${JSON.stringify(sourceIds)},`
       : "";
 
-    const sliceLogic = `# Auto-normalize longitude (handles both 0..360 and -180..180 grids, including 0°E crossings)
-if float(ds.lon.max()) > 180:
-    ds = ds.assign_coords(lon=((ds.lon + 180) % 360) - 180).sortby("lon")
-subset = ds.sel(lat=slice(${state.latMin}, ${state.latMax}), lon=slice(${state.lonMin}, ${state.lonMax}), time=slice("${tStart}", "${tEnd}"))`;
-
     const slug = state.regionName.toLowerCase().replace(/[^a-z0-9]+/g, "_");
-    return `# Requires: pip install intake-esgf xarray zarr netcdf4
+    return `# Requires: pip install intake-esgf xarray netcdf4 cftime
 import intake_esgf
 import xarray as xr
 
@@ -1419,17 +1421,57 @@ cat = intake_esgf.ESGFCatalog().search(
     variable_branded_name="${v.branded}",${gridLinePy}${sourceLinePy}
 )
 print(cat)
+if len(cat.df) == 0:
+    raise SystemExit("No matching CMIP7 datasets found for these filters.")
 
-# 2. Open matching datasets before cropping
-datasets = cat.to_dataset_dict(progressbar=True)
+# 2. Open first matching dataset (remove the .iloc[:1] line to download all matches)
+cat.df = cat.df.iloc[:1]
+datasets = cat.to_dataset_dict()
 ds = next(iter(datasets.values()))
 
-# 3. Subset selected area (${state.regionName}) & time window
-${sliceLogic}
+# 3. Auto-detect lat/lon coords, normalize 0..360 -> -180..180, and subset (${state.regionName})
+lat_name = next((c for c in ("lat", "latitude", "nav_lat") if c in ds.coords), None)
+lon_name = next((c for c in ("lon", "longitude", "nav_lon") if c in ds.coords), None)
+if lat_name is None or lon_name is None:
+    raise KeyError(f"Could not find lat/lon coordinates in {list(ds.coords)}")
+
+if float(ds[lon_name].max()) > 180:
+    ds = ds.assign_coords({lon_name: ((ds[lon_name] + 180) % 360) - 180})
+    if ds[lon_name].ndim == 1:
+        ds = ds.sortby(lon_name)
+
+if ds[lat_name].ndim == 1 and ds[lon_name].ndim == 1:
+    # 1D rectilinear grid (handles both ascending and descending latitude)
+    lat_vals = ds[lat_name].values
+    lat_slice = slice(${state.latMin}, ${state.latMax}) if lat_vals[0] <= lat_vals[-1] else slice(${state.latMax}, ${state.latMin})
+    subset = ds.sel({lat_name: lat_slice, lon_name: slice(${state.lonMin}, ${state.lonMax})})
+else:
+    # 2D curvilinear grid (common for ocean / sea-ice variables)
+    mask = (
+        (ds[lat_name] >= ${state.latMin}) & (ds[lat_name] <= ${state.latMax}) &
+        (ds[lon_name] >= ${state.lonMin}) & (ds[lon_name] <= ${state.lonMax})
+    ).compute()
+    dims = mask.dims
+    subset = ds.isel({
+        dims[0]: mask.any(dim=dims[1]),
+        dims[1]: mask.any(dim=dims[0]),
+    })
+
+if "time" in subset.coords:
+    # Clamp date bounds safely for 360_day and noleap/365_day model calendars
+    def _safe_date(s, cal):
+        y, m, d = (int(p) for p in s.split("-")[:3])
+        if cal == "360_day":
+            d = min(d, 30)
+        elif cal in ("365_day", "noleap") and m == 2:
+            d = min(d, 28)
+        return f"{y:04d}-{m:02d}-{d:02d}"
+    cal = getattr(subset["time"].dt, "calendar", "standard")
+    subset = subset.sel(time=slice(_safe_date("${tStart}", cal), _safe_date("${tEnd}", cal)))
 
 # 4. Save regional subset locally as NetCDF4
 out_file = "cmip7_${v.branded}_${exp}_${slug}.nc"
-subset.to_netcdf(out_file)
+subset.load().to_netcdf(out_file)
 print("Saved:", out_file)`;
   }
 
